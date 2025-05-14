@@ -1,4 +1,4 @@
-baseurl: /
+baseurl: http://r-finance.org.cn
 languageCode: en-US
 title: A Hugo website
 theme: hugo-lithium
