@@ -1,6 +1,6 @@
 baseurl = "http://rfinance.org.cn"
 languageCode = "en-US"
-title = "A Hugo website"
+title = "R-Finance 中文网"
 theme = "hugo-lithium"
 ignoreFiles = ["\\.Rmd$", "\\.Rmarkdown$", "_cache$"]
 
@@ -11,7 +11,7 @@ ignoreFiles = ["\\.Rmd$", "\\.Rmarkdown$", "_cache$"]
     name = "About"
     url = "/about/"
 [[menu.main]]
-    name = "GitHub"
+    name = "主页"
     url = "https://github.com/rstudio/blogdown"
 [[menu.main]]
     name = "Twitter"
