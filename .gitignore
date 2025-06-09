@@ -1,25 +1,22 @@
+public/
+resources/
+.hugo_build.lock
 # History files
 .Rhistory
 .Rapp.history
 *.Rproj
 .Rprofile
-.gitignore
-
 # Session Data files
 .RData
 .RDataTmp
 # User-specific files
 .Ruserdata
-
 # Output files from R CMD check
 /*.Rcheck/
 # RStudio files
 .Rproj.user/
-
 # knitr and R markdown default cache directories
 *_cache/
 /cache/
-
 # R Environment Variables
 .Renviron
-
