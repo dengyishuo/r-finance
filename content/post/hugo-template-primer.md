@@ -9,8 +9,8 @@ tags:
   - "themes"
   - "development"
 categories:
-  - "Development"
-  - "golang"
+  - "量化投资"
+  - "计量经济学"
 ---
 
 Hugo uses the excellent [Go][] [html/template][gohtmltemplate] library for

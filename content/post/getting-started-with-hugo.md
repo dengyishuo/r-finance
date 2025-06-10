@@ -7,8 +7,9 @@ tags:
   - "hugo"
   - "development"
 categories:
-  - "Development"
-  - "golang"
+  - "计量经济学"
+  - "量化投资"
+  - "财务分析"
 ---
 
 ## Step 1. Install Hugo
