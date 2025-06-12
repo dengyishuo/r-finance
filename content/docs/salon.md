@@ -10,10 +10,6 @@ thumbnail:
 authorbox: false
 sidebar: false
 pager: false
-weight: 2
-menu: 
-    main:
-      name: 沙龙
 ---
 
 R-Finance沙龙是一个R语言金融数据分析的学习和交流平台，旨在帮助R语言爱好者和金融

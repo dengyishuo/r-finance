@@ -9,10 +9,6 @@ tags:
 authorbox: false
 sidebar: false
 pager: false
-weight: 1
-menu: 
-    main:
-      name: 训练坊
 ---
 
 R-Finance训练坊是一个为R语言爱好者提供的学习和交流平台。我们定期举办各种主题的训

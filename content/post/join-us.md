@@ -9,10 +9,6 @@ tags:
   - "HTML"
   - "CSS"
   - "Basic Elements"
-menu:
-  main:
-    name: 加入
-    weight: 4
 ---
 
 如果想加入我们，请发邮件至[官方邮箱](mailto:dengyishuo@163.com)。
