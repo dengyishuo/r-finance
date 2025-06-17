@@ -1,5 +1,5 @@
-public/
-resources/
+/public/
+/resources/
 .hugo_build.lock
 # History files
 .Rhistory
@@ -20,3 +20,4 @@ resources/
 /cache/
 # R Environment Variables
 .Renviron
+# All pdf
