@@ -1,7 +1,26 @@
 ---
-editor_options: 
-  markdown: 
-    wrap: 50
+title: "基于R语言的多股票对数收益率分析与可视化对比"
+author: "Ski/格物堂"
+date: "2025-06-10 15:36:25"
+description: null
+lead: null
+authorbox: false
+sidebar: false
+pager: false
+tags:
+  - "动量"
+  - "轮动策略"
+  - "有效性"
+  - "R"
+categories:
+  - "量化投资"
+documentclass: ctexart
+output:
+  rticles::ctex:
+    fig_caption: true
+    number_sections: true
+    toc: true
+    toc_depth: 2
 ---
 
 # 前言
