@@ -651,13 +651,13 @@ price_plot <- ggplot(plot_data, aes(x = Date, y = Close)) +
   ) +
   # 标记买卖点
   geom_point(data = buy_points, aes(y = Close), 
-             color = "green", size = 3, shape = 16, alpha = 0.8) +
+             color = "green", size = 1, shape = 16, alpha = 0.8) +
   geom_point(data = sell_points, aes(y = Close), 
-             color = "red", size = 3, shape = 16, alpha = 0.8) +
+             color = "red", size = 1, shape = 16, alpha = 0.8) +
   # 添加买卖点标记文本
-  geom_text(data = buy_points, aes(y = Close + 5, label = "Buy"), 
+  geom_text(data = buy_points, aes(y = Close + 5, label = "B"), 
             color = "darkgreen", size = 3.5, fontface = "bold") +
-  geom_text(data = sell_points, aes(y = Close - 5, label = "Sell"), 
+  geom_text(data = sell_points, aes(y = Close - 5, label = "S"), 
             color = "darkred", size = 3.5, fontface = "bold") +
   # 设置标题和坐标轴标签
   labs(
@@ -694,11 +694,11 @@ kdj_plot <- ggplot(plot_data, aes(x = Date)) +
   geom_line(aes(y = D, color = "D线"), size = 1) +
   geom_line(aes(y = J, color = "J线"), size = 1) +
   # 添加超买超卖区域
-  geom_ribbon(aes(ymin = 80, ymax = 100), fill = "red", alpha = 0.1) +
-  geom_ribbon(aes(ymin = 0, ymax = 20), fill = "green", alpha = 0.1) +
+  geom_ribbon(aes(ymin = 80, ymax = 100), fill = "salmon", alpha = 0.3) +
+  geom_ribbon(aes(ymin = 0, ymax = 20), fill = "lightgreen", alpha = 0.3) +
   # 添加超买超卖线
-  geom_hline(yintercept = 80, color = "red", linetype = "dashed", size = 0.8) +
-  geom_hline(yintercept = 20, color = "green", linetype = "dashed", size = 0.8) +
+  geom_hline(yintercept = 80, color = "salmon", linetype = "dashed", size = 0.8) +
+  geom_hline(yintercept = 20, color = "lightgreen", linetype = "dashed", size = 0.8) +
   # 添加标记文本
   annotate("text", x = min(plot_data$Date), y = 90, label = "超买区域", 
            color = "red", size = 3.5) +

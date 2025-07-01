@@ -26,20 +26,26 @@ output:
 \newpage
 
 ```{R setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, 
-                      warning = FALSE, 
-                      message = FALSE, 
-                      fig.pos = 'H', 
-                      fig.align = 'center', 
-                      fig.width = 6.5, 
-                      fig.height = 4, 
-                      out.width = "90%", 
-                      width = 80)
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.pos = 'H',
+  fig.align = 'center',
+  fig.width = 6.5,
+  fig.height = 4,
+  out.width = "90%",
+  tidy.opts = list(width.cutoff = 50),
+  tidy = TRUE,
+  width = 50
+)
 ```
 
 # 引言
 
-技术分析是金融市场中常用的分析方法，其中MACD指标是一种重要的趋势跟踪指标，能够反映价格波动的趋势和动量。本研究旨在通过R语言实现基于MACD指标的股票择时交易策略，并通过历史数据回测寻找最佳参数组合。
+技术分析是金融市场中常用的分析方法，其中MACD指标是一种重要的趋势跟踪指标，能够反
+映价格波动的趋势和动量。本研究旨在通过R语言实现基于MACD指标的股票择时交易策略，并
+通过历史数据回测寻找最佳参数组合。
 
 # 研究方法
 
@@ -83,8 +89,12 @@ getSymbols("TSLA",
            src = "yahoo", 
            from = startdate.st, 
            to = enddate.st)
-colnames(TSLA) <- c("Open", "High", "Low", 
-                    "Close", "Volume", "Adjusted")
+colnames(TSLA) <- c("Open", 
+                    "High", 
+                    "Low", 
+                    "Close", 
+                    "Volume", 
+                    "Adjusted")
 
 # 查看数据结构
 head(TSLA)
@@ -256,7 +266,8 @@ tryCatch({
 
 # 参数优化
 
-MACD指标的主要参数包括快速EMA周期(nFast)、慢速EMA周期(nSlow)和信号线周期(nSig)。为了找到最佳参数组合，我们将进行参数网格搜索：
+MACD指标的主要参数包括快速EMA周期(nFast)、慢速EMA周期(nSlow)和信号线周期(nSig)。
+为了找到最佳参数组合，我们将进行参数网格搜索：
 
 ```{R param_optimization}
 # 设置参数网格
@@ -583,7 +594,7 @@ price_data <- data.frame(
 macd_data <- data.frame(
     date = index(macd_values),
     macd = as.numeric(macd_values$macd),
-    signal_line = as.numeric(macd_values$signal),  # 避免与交易信号重名
+    signal_line = as.numeric(macd_values$signal), # 避免与交易信号重名
     histogram = as.numeric(macd_values$macd - macd_values$signal)
 )
 
@@ -622,7 +633,7 @@ price_plot <- ggplot(merged_data, aes(x = date, y = close)) +
     # 价格线
     geom_line(color = "#2c3e50", size = 0.5) +
     # 移动平均线
-    geom_line(aes(y = ma20), color = "#e74c3c", size = 1, linetype = "dashed") +
+    geom_line(aes(y = ma20), color = "#e74c3c", size = 0.5, linetype = "dashed") +
     # 固定百分比趋势带
     #geom_ribbon(
     #    aes(ymin = ma20_lower, ymax = ma20_upper),
@@ -637,14 +648,14 @@ price_plot <- ggplot(merged_data, aes(x = date, y = close)) +
     geom_point(data = buy_points, 
                aes(y = close), 
                color = "#27ae60", 
-               size = 1, 
+               size = 0.5, 
                shape = 16, 
                fill = "white", 
                alpha = 0.9) +
     geom_point(data = sell_points, 
                aes(y = close), 
                color = "#e74c3c", 
-               size = 1, 
+               size = 0.5, 
                shape = 16, 
                fill = "white", 
                alpha = 0.9) +
@@ -679,11 +690,17 @@ price_plot <- ggplot(merged_data, aes(x = date, y = close)) +
         labels = c("价格", "20日移动平均线")
     ) +
     # 添加参考线和标记
-    geom_hline(yintercept = mean(merged_data$close, na.rm = TRUE), 
-               color = "gray", linetype = "dashed", size = 0.7) +
-    annotate("text", x = max(merged_data$date, na.rm = TRUE), 
+    geom_hline(yintercept = mean(merged_data$close, 
+                                 na.rm = TRUE), 
+               color = "gray", 
+               linetype = "dashed", size = 0.5) +
+    annotate("text", 
+             x = max(merged_data$date, na.rm = TRUE), 
              y = mean(merged_data$close, na.rm = TRUE) * 0.97, 
-             label = "平均价格", color = "gray", size = 3.5, hjust = 1)
+             label = "平均价格", 
+             color = "gray", 
+             size = 3.5, 
+             hjust = 1)
 
 # 9. MACD指标图（优化方向填充色对比）
 macd_plot <- ggplot(merged_data, aes(x = date)) +
@@ -914,7 +931,8 @@ if (nrow(trades) > 0) {
 
 通过对MACD指标的参数优化和回测分析，我们得出以下结论：
 
-1. 在研究期间内，基于MACD指标的择时策略在特定参数组合下能够取得优于简单买入持有策略的风险调整后收益。
+1. 在研究期间内，基于MACD指标的择时策略在特定参数组合下能够取得优于简单买入持有策
+略的风险调整后收益。
 2. 最佳参数组合显示，快速EMA周期、慢速EMA周期和信号线周期对策略表现有显著影响。
 3. 策略的交易频率适中，平均持有期符合中期投资风格。
 
@@ -932,6 +950,9 @@ if (nrow(trades) > 0) {
 2. 研究不同市场环境下MACD指标的适用性，开发自适应参数机制。
 3. 考虑交易成本、滑点和税费等实际因素，优化策略实现。
 
-通过本研究，我们展示了如何使用R语言和相关金融包实现技术指标的回测和优化，为量化交易策略的开发提供了实用的方法和思路。
+通过本研究，我们展示了如何使用R语言和相关金融包实现技术指标的回测和优化，为量化交
+易策略的开发提供了实用的方法和思路。
 
-这篇文章提供了一个完整的MACD指标择时交易策略分析流程，包括数据获取、指标计算、策略实现、参数优化、回测分析和可视化。您可以直接将代码复制到R Markdown环境中运行，或者根据需要进行调整和扩展。希望这对您的研究和实践有所帮助！如果有任何问题或需要进一步的讨论，请随时联系我。
+这篇文章提供了一个完整的MACD指标择时交易策略分析流程，包括数据获取、指标计算、策
+略实现、参数优化、回测分析和可视化。您可以直接将代码复制到R Markdown环境中运行，或者根据需要进行调整和扩展。希望这对您的研究和实践有所帮助！
+如果有任何问题或需要进一步的讨论，请随时联系我。

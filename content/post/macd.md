@@ -23,6 +23,22 @@ output:
     toc_depth: 2
 ---
 
+```{R setup, include = FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.pos = 'H',
+  fig.align = 'center',
+  fig.width = 6.5,
+  fig.height = 4,
+  out.width = "90%",
+  tidy.opts = list(width.cutoff = 50),  # 代码自动换行宽度
+  tidy = TRUE,                          # 启用代码格式化
+  width = 50                            # 输出结果宽度
+)
+```
+
 # 引言
 
 技术分析是金融市场中常用的分析方法，其中MACD指标是一种重要的趋势跟踪指标，能够反映价格波动的趋势和动量。本研究旨在通过R语言实现基于MACD指标的股票择时交易策略，并通过历史数据回测寻找最佳参数组合。
@@ -35,6 +51,7 @@ output:
 
     # 加载必要的包
     library(quantmod)
+    library(tidyr)
     library(quantstrat)
     library(eTTR)
     library(PerformanceAnalytics)
