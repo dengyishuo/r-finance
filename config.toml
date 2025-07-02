@@ -17,8 +17,7 @@ googleAnalytics = "" # Enable Google Analytics by entering your tracking id
   pager = true
   post_meta = ["date", "categories"] # Order of post meta information
   mainSections = ["post", "docs"]
-  ignoreLogs = ["warning-goldmark-raw-html"] 
-
+  
 [params.logo]
   subtitle = "R语言与金融深度融合的堡垒站点" # Logo subtitle
 
@@ -33,8 +32,20 @@ googleAnalytics = "" # Enable Google Analytics by entering your tracking id
   recent_num = 5 # Set the number of articles in the "Recent articles" widget
   tags_counter = false # Enable counter for each tag in "Tags" widget (disabled by default)
 
-# 修复作者配置（替换已弃用的.Site.Author）
 [params.author]
   name = "rfinance"
   bio = "rfinnace's true identity is unknown. Maybe he is a successful blogger or writer. Nobody knows it."
   avatar = "img/avatar.png"
+
+# 数学公式渲染配置
+[params.math]
+  enable = false  # 全局默认禁用，单篇文章启用
+  mathjaxPath = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"  # 使用 MathJax v3
+  mathjaxConfig = "TeX-AMS-MML_HTMLorMML"  # 标准配置
+# Markdown 渲染优化（修复 smartypants 位置）
+[markup]
+  smartypants = false  # 禁用智能引号转换，避免干扰 LaTeX 公式
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true  # 允许原始 HTML 和 LaTeX 符号
+      

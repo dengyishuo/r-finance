@@ -1,6 +1,6 @@
 ---
 title: "基于动量轮动策略的有效性分析"
-author: "Ski/格物堂"
+author: "Ski"
 date: "2025-06-10 15:36:25"
 description: null
 lead: null
@@ -13,18 +13,13 @@ tags:
   - "轮动策略"
 categories:
   - "量化投资"
-documentclass: ctexart
 output:
-  rticles::ctex:
-    fig_caption: true
-    number_sections: true
-    toc: true
-    toc_depth: 2
+  html_document:
+    preserve_yaml: true
 ---
 
-\newpage
 
-```{R, include = FALSE}
+```{R setup, include = FALSE}
 knitr::opts_chunk$set(
   echo = TRUE,
   warning = FALSE,
@@ -34,6 +29,10 @@ knitr::opts_chunk$set(
   out.width = "90%",
   width = "90%"
 )
+
+library(showtext)
+font_add("SimHei", regular = "SimHei.ttf") 
+showtext_auto()
 ```
 
 # 引言
@@ -53,7 +52,7 @@ knitr::opts_chunk$set(
 
 首先加载必要的R包并获取股票数据。我们将选取多只大盘股和小盘股作为研究对象。
 
-```{r pkg}
+```{R pkg, message=FALSE, warning=FALSE}
 # 加载必要的R包
 library(quantmod)
 library(PerformanceAnalytics)
@@ -69,7 +68,7 @@ library(magrittr)
 接下来，我们获取股票数据。我们将选择10只大盘股和10只小盘股作为样本。大盘股选取标
 普500指数成分股中市值最大的10只，小盘股选取罗素2000指数成分股中市值最小的10只。
 
-```{r data-preparation}
+```{R dataPreparation}
 # 设置起止日期
 start_date <- "2018-01-01"
 end_date <- "2023-01-01"
@@ -141,7 +140,7 @@ for (symbol in valid_symbols) {
 
 让我们计算并可视化大盘股和小盘股的平均价格走势，以便对数据有一个直观的了解。
 
-```{r price-comparison}
+```{R priceComparison}
 # 函数：合并多只股票的收盘价并处理缺失值
 merge_stock_prices <- function(symbols, stock_data_list) {
   merged_prices <- NULL
@@ -213,7 +212,7 @@ ggplot(price_data, aes(x = Date)) +
 
 首先定义一个函数来实现这个策略：
 
-```{r momentum-rotation-strategy}
+```{R MomentumRotationStrategy}
 # 改进的动量轮动策略函数
 momentum_rotation_strategy <- function(large_cap_data, small_cap_data,
                                        lookback_period = 20,
@@ -348,7 +347,7 @@ momentum_rotation_strategy <- function(large_cap_data, small_cap_data,
 
 现在我们将这个策略应用到数据上，并评估其表现：
 
-```{R apply-strategy}
+```{R ApplyStrategy}
 # 应用策略到数据
 strategy_results <- momentum_rotation_strategy(
   lapply(large_cap_symbols, function(symbol) stock_data[[symbol]]),
@@ -433,7 +432,7 @@ print(performance_metrics)
 
 我们将使用网格搜索方法来寻找最优参数组合：
 
-```{r parameter-optimization}
+```{r ParameterOptimization}
 # 参数优化主流程
 pkg <- c(
   "quantmod", "PerformanceAnalytics", "foreach", "doParallel",
@@ -514,7 +513,7 @@ ggplot(
 
 为了进一步了解策略对不同参数的敏感性，我们将进行更详细的参数敏感性分析。
 
-```{r parameter-sensitivity}
+```{R ParameterSensitivity}
 # 1. 回看期敏感性分析
 # 创建存储结果的数据框结构
 lookback_sensitivity <- data.frame(
@@ -620,7 +619,7 @@ plot_sensitivity(threshold_sensitivity, "再平衡阈值")
 
 现在我们使用优化后的参数在样本外数据上验证策略的有效性：
 
-```{r out-of-sample-validation}
+```{R outOfSampleValidation}
 # 使用优化后的参数在样本外数据上测试策略
 oos_result <- momentum_rotation_strategy(
   lapply(large_cap_symbols, function(symbol) oos_data[[symbol]]), # 加载大盘股样本外数据

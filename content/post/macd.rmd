@@ -1,12 +1,13 @@
 ---
 title: "MACD指标择时交易策略分析"
-author: "Ski/格物堂"
+author: "Ski"
 date: "2025-06-10 15:36:25"
 description: null
 lead: null
 authorbox: false
 sidebar: false
 pager: false
+mathjax: true 
 tags:
   - "动量"
   - "轮动策略"
@@ -14,16 +15,11 @@ tags:
   - "R"
 categories:
   - "量化投资"
-documentclass: ctexart
 output:
-  rticles::ctex:
-    fig_caption: true
-    number_sections: true
-    toc: true
-    toc_depth: 2
+  html_document:
+    preserve_yaml: true
 ---
 
-\newpage
 
 ```{R setup, include=FALSE}
 knitr::opts_chunk$set(
@@ -35,10 +31,11 @@ knitr::opts_chunk$set(
   fig.width = 6.5,
   fig.height = 4,
   out.width = "90%",
-  tidy.opts = list(width.cutoff = 50),
-  tidy = TRUE,
   width = 50
 )
+library(showtext)
+font_add("SimHei", regular = "SimHei.ttf") 
+showtext_auto()
 ```
 
 # 引言
@@ -106,29 +103,31 @@ summary(TSLA)
 MACD指标由三条曲线组成：DIF线、DEA线和MACD柱状图。其计算基于以下步骤：
 
 1. 计算短期和长期EMA：
-   $$
-   EMA_{s} = \frac{2}{N_{s} + 1} \times (Cl - EMA_{s}^{pre}) + EMA_{s}^{pre}
-   $$
-   $$
-   EMA_{l} = \frac{2}{N_{l} + 1} \times (Cl - EMA_{l}^{pre}) + EMA_{l}^{pre}
-   $$
-   其中，$N_{s}$通常为12，$N_{l}$通常为26。
+$$
+EMA_{s} = \frac{2}{N_{s} + 1} \times (Cl - EMA_{s}^{pre}) + EMA_{s}^{pre}
+$$
+
+$$
+EMA_{l} = \frac{2}{N_{l} + 1} \times (Cl - EMA_{l}^{pre}) + EMA_{l}^{pre}
+$$
+
+其中，$N_{s}$通常为12，$N_{l}$通常为26。
 
 2. 计算DIF线：
-   $$
-   DIF = EMA_{s} - EMA_{l}
-   $$
+$$
+DIF = EMA_{s} - EMA_{l}
+$$
 
 3. 计算DEA线：
-   $$
-   DEA = \frac{2}{N_{signal} + 1} \times (DIF - DEA^{pre}) + DEA^{pre}
-   $$
-   其中， $N_{signal}$ 通常为9。
+$$
+DEA = \frac{2}{N_{signal} + 1} \times (DIF - DEA^{pre}) + DEA^{pre}
+$$
+   其中，$N_{signal}$通常为9。
 
 4. 计算MACD柱状图：
-   $$
-   MACD = DIF - DEA
-   $$
+$$
+MACD = DIF - DEA
+$$
 
 ## 交易策略设计
 

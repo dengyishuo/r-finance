@@ -7,16 +7,14 @@ description: null
 authorbox: false
 sidebar: false
 pager: false
-documentclass: ctexart
+mathjax: true
+tags: ["R", "金融", "马克维茨", "投资组合"]
+categories: ["R语言", "金融数据分析"]
 output:
-  rticles::ctex:
-    fig_caption: true
-    number_sections: true
-    toc: true
-    toc_depth: 2
+  html_document:
+    preserve_yaml: true
 ---
 
-\newpage
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, 
@@ -24,19 +22,27 @@ knitr::opts_chunk$set(echo = TRUE,
                       message = FALSE, 
                       fig.pos = 'H', 
                       fig.align = 'center')
+library(showtext)
+font_add("SimHei", regular = "SimHei.ttf") 
+showtext_auto()
 ```
 
 # 摘要
 
-本文通过实证分析验证了马克维兹现代投资组合理论(MPT)的有效性。利用Quantmod包获取市场数据，结合PortfolioAnalytics和PerformanceAnalytics等工具，构建了多个资产的有效前沿，并分析了不同风险偏好下的最优投资组合配置。研究结果表明，通过分散投资和优化资产权重，马克维兹投资组合能够在相同风险水平下获得更高收益，或在相同收益水平下承担更低风险，充分体现了多元化投资的价值。
+本文通过实证分析验证了马克维兹现代投资组合理论(MPT)的有效性。利
+用Quantmod包获取市场数据，结合PortfolioAnalytics和PerformanceAnalytics等工具，构建了多个资产的有效前沿，并分析了不同风险偏好下的最优投资组合配置。研
+究结果表明，通过分散投资和优化资产权重，马克维兹投资组合能够在相同风险水平下获得更高收益，或在相同收益水平下承担更低风险，充分体现了多元化投资的价值。
 
 # 引言
 
-现代投资组合理论(Modern Portfolio Theory, MPT)由Harry Markowitz于1952年提出，是金融学领域的重要突破。该理论通过数学模型证明了投资者可以通过资产组合的选择，在风险和收益之间找到最佳平衡点，实现投资组合的最优化。本文将通过R语言实现马克维兹投资组合理论的核心思想，并通过实证分析验证其有效性。
+现代投资组合理论(Modern Portfolio Theory, MPT)由Harry Markowitz于1952年提出，是金融学领域的重要突破。该
+理论通过数学模型证明了投资者可以通过资产组合的选择，在风险和收益之间找到最佳平衡点，实现投资组合的最优化。本
+文将通过R语言实现马克维兹投资组合理论的核心思想，并通过实证分析验证其有效性。
 
 ## 理论背景
 
-马克维兹投资组合理论的核心假设是投资者是风险厌恶的，他们在追求最大收益的同时也希望最小化风险。该理论通过以下几个关键概念来实现投资组合的优化：
+马克维兹投资组合理论的核心假设是投资者是风险厌恶的，他们在追求最大收益的同时也希望最小化风险。该
+理论通过以下几个关键概念来实现投资组合的优化：
 
 1.  **风险与收益的权衡**：投资组合的预期收益是各资产预期收益的加权平均，而风险则由资产间的协方差决定。
 2.  **有效前沿**：在给定风险水平下能够提供最高预期收益的投资组合集合，或者在给定预期收益下风险最小的投资组合集合。

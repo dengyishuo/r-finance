@@ -1,6 +1,6 @@
 ---
-title: "基于R语言的多股票对数收益率分析与可视化对比"
-author: "Ski/格物堂"
+title: "R语言与多股票波动性及相关性的可视化"
+author: "格物堂"
 date: "2025-06-10 15:36:25"
 description: null
 lead: null
@@ -8,32 +8,31 @@ authorbox: false
 sidebar: false
 pager: false
 tags:
-  - "动量"
-  - "轮动策略"
-  - "有效性"
+  - "相关性"
+  - "股票"
+  - "波动性"
   - "R"
 categories:
   - "量化投资"
-documentclass: ctexart
 output:
-  rticles::ctex:
-    fig_caption: true
-    number_sections: true
-    toc: true
-    toc_depth: 2
+  html_document:
+    preserve_yaml: true
 ---
+
+
+
+\newpage
 
 # 前言
 
-在量化投资建模过程之前，有时候，我们需要对多只股票的价格走势、收益率序列、波动率等进行分析。下面给出使用
-R
-语言比较多只股票价格走势的完整解决方案。方案涵盖数据获取、清洗、可视化及基础分析全流程：
+在量化投资建模过程之前，有时候，我们需要对多只股票的价格走势、收益率序列、波动率等进行分析。下面给出使用 R 语言比较多只股票价格走势的完整解决方案。方案涵盖数据获取、清洗、可视化及基础分析全流程：
 
 # 数据获取
 
 ## 安装与加载工具包
 
-```         
+
+``` r
 # 安装必要包（首次运行需取消注释）
 # install.packages(c("quantmod", 
 #                    "tidyverse", 
@@ -49,7 +48,8 @@ library(zoo)        # 时间序列处理
 
 ## 定义股票代码与时间范围
 
-```         
+
+``` r
 # 股票代码列表（支持多市场，如A股需加 .SS/.SZ）
 # 苹果、谷歌、微软、英伟达
 stocks <- c("AAPL", "GOOGL", "MSFT", "NVDA")  
@@ -60,15 +60,20 @@ end_date <- Sys.Date()  # 获取当前日期
 
 ## 批量获取股票数据
 
-```         
+
+``` r
 # 获取数据
 getSymbols(stocks, 
            src = "yahoo", 
            from = start_date, 
            to = end_date)
+```
 
+```
 ## [1] "AAPL"  "GOOGL" "MSFT"  "NVDA"
+```
 
+``` r
 # 处理数据
 stock_data <- lapply(stocks, function(x) {
   data <- as_tibble(get(x)) %>%
@@ -82,7 +87,9 @@ stock_data <- lapply(stocks, function(x) {
 
 # 查看结果
 head(stock_data)
+```
 
+```
 ## # A tibble: 6 × 3
 ##   Date       price symbol
 ##   <date>     <dbl> <chr> 
@@ -98,7 +105,8 @@ head(stock_data)
 
 ## 处理缺失值
 
-```         
+
+``` r
 library(dplyr)
 # 检查缺失值
 missing_values <- stock_data %>%
@@ -113,7 +121,8 @@ stock_data <- stock_data %>%
 
 ## 对齐时间序列
 
-```         
+
+``` r
 library(dplyr)
 # 生成完整日期序列
 full_dates <- tibble(Date = seq(as.Date(start_date), 
@@ -132,7 +141,8 @@ stock_data <- full_dates %>%
 
 ## 基础折线图
 
-```         
+
+``` r
 library(dplyr)
 ggplot(stock_data, aes(x = Date, y = price, color = symbol)) +
   geom_line(linewidth = 0.8) +
@@ -149,11 +159,12 @@ ggplot(stock_data, aes(x = Date, y = price, color = symbol)) +
                      )
 ```
 
-<img src="chart-muti-stocks_files/figure-markdown_strict/lineChart-1.png" width="90%" style="display: block; margin: auto;" />
+<img src="/post/chart-muti-stocks_files/figure-html/lineChart-1.png" width="90%" style="display: block; margin: auto;" />
 
 ## 对数收益率对比
 
-```         
+
+``` r
 library(dplyr)
 # 计算对数收益率
 return_data <- stock_data %>%
@@ -173,11 +184,12 @@ ggplot(return_data,
   theme(legend.position = "top") # 图例放底部
 ```
 
-<img src="chart-muti-stocks_files/figure-markdown_strict/logReturn-1.png" width="90%" style="display: block; margin: auto;" />
+<img src="/post/chart-muti-stocks_files/figure-html/logReturn-1.png" width="90%" style="display: block; margin: auto;" />
 
 绘制对数收益率密度图：
 
-```         
+
+``` r
 library(dplyr)
 ggplot(return_data, aes(x = log_return, fill = symbol)) +
   geom_density(alpha = 0.4) +  # 半透明填充
@@ -189,11 +201,12 @@ ggplot(return_data, aes(x = log_return, fill = symbol)) +
   theme(legend.position = "top")  # 图例放底部
 ```
 
-<img src="chart-muti-stocks_files/figure-markdown_strict/density-1.png" width="90%" style="display: block; margin: auto;" />
+<img src="/post/chart-muti-stocks_files/figure-html/density-1.png" width="90%" style="display: block; margin: auto;" />
 
 将密度图叠加以便于比较：
 
-```         
+
+``` r
 library(dplyr)
 # 对数收益率密度图（叠加显示）
 ggplot(return_data, aes(x = log_return, fill = symbol, color = symbol)) +
@@ -208,9 +221,9 @@ ggplot(return_data, aes(x = log_return, fill = symbol, color = symbol)) +
                                 "NVDA" = "#527D00")) 
 ```
 
-<img src="chart-muti-stocks_files/figure-markdown_strict/densityOverlap-1.png" width="90%" style="display: block; margin: auto;" />
+<img src="/post/chart-muti-stocks_files/figure-html/densityOverlap-1.png" width="90%" style="display: block; margin: auto;" />
 
-```         
+``` r
   labs(title = "对数收益率密度分布对比",
        x = "对数收益率",
        y = "密度",
@@ -224,13 +237,16 @@ ggplot(return_data, aes(x = log_return, fill = symbol, color = symbol)) +
     axis.title = element_text(size = 12),
     axis.text = element_text(size = 10)
   )
+```
 
+```
 ## NULL
 ```
 
 还可以绘制箱线图：
 
-```         
+
+``` r
 library(dplyr)
 # 箱线图对比
 ggplot(return_data, aes(x = symbol, y = log_return, fill = symbol)) +
@@ -242,13 +258,14 @@ ggplot(return_data, aes(x = symbol, y = log_return, fill = symbol)) +
   theme(legend.position = "top") 
 ```
 
-<img src="chart-muti-stocks_files/figure-markdown_strict/boxplot-1.png" width="90%" style="display: block; margin: auto;" />
+<img src="/post/chart-muti-stocks_files/figure-html/boxplot-1.png" width="90%" style="display: block; margin: auto;" />
 
 # 股票数据特征的统计分析
 
 ## 计算波动率
 
-```         
+
+``` r
 library(dplyr)
 volatility <- return_data %>%
   group_by(symbol) %>%
@@ -256,7 +273,9 @@ volatility <- return_data %>%
   arrange(desc(volatility))
 
 print(volatility)
+```
 
+```
 ## # A tibble: 4 × 2
 ##   symbol volatility
 ##   <chr>       <dbl>
@@ -268,7 +287,8 @@ print(volatility)
 
 ## 相关性分析
 
-```         
+
+``` r
 library(dplyr)
 # 转换为宽格式
 price_wide <- return_data %>%
@@ -295,9 +315,9 @@ corrplot(cor_matrix,
          diag = FALSE)          # 不显示对角线
 ```
 
-<img src="chart-muti-stocks_files/figure-markdown_strict/wideDat-1.png" width="90%" style="display: block; margin: auto;" />
+<img src="/post/chart-muti-stocks_files/figure-html/wideDat-1.png" width="90%" style="display: block; margin: auto;" />
 
-```         
+``` r
 # 计算相关系数矩阵
 cor_matrix <- cor(price_wide)
 
@@ -327,11 +347,12 @@ ggcorrplot(
   )
 ```
 
-<img src="chart-muti-stocks_files/figure-markdown_strict/wideDat-2.png" width="90%" style="display: block; margin: auto;" />
+<img src="/post/chart-muti-stocks_files/figure-html/wideDat-2.png" width="90%" style="display: block; margin: auto;" />
 
 # 导出数据
 
-```         
+
+``` r
 # 导出为 CSV
 write_csv(stock_data, "stock_prices.csv")
 
@@ -342,19 +363,12 @@ write_csv(stock_data, "stock_prices.csv")
 
 # 小结
 
-本文的数据来源为雅虎财经（Yahoo
-Finance），若需更专业数据，可考虑 WRDS
-数据库（需机构订阅）。
+本文的数据来源为雅虎财经（Yahoo Finance），若需更专业数据，可考虑 WRDS 数据库（需机构订阅）。
 
-在 R 软件包的选择上，我们使用了 quantmod
-包以快速获取数据，但该软件包返回的是 xts
-格式，后续计算过程中需转换为 tibble 。
+在 R 软件包的选择上，我们使用了 quantmod 包以快速获取数据，但该软件包返回的是 xts 格式，后续计算过程中需转换为 tibble 。
 
-数据处理过程借助于 tidyquant
-包，该软件包可以返回整洁格式的数据，与 tidyverse
-兼容性更好。
+数据处理过程借助于 tidyquant 包，该软件包可以返回整洁格式的数据，与 tidyverse 兼容性更好。
 
-缺失值处理方面，前向填充（na.locf）适用于短期缺失，多重插补（mice包）可处理复杂缺失模式。可视化优化方面，可以使用scale_color_manual自定义颜色。此外，可以添加geom_smooth拟合趋势线（如method
-= "loess"）。
+缺失值处理方面，前向填充（na.locf）适用于短期缺失，多重插补（mice包）可处理复杂缺失模式。可视化优化方面，可以使用scale_color_manual自定义颜色。此外，可以添加geom_smooth拟合趋势线（如method = "loess"）。
 
 通过以上步骤，我们可以高效地获取、清洗并可视化多只股票的价格走势，结合波动率和相关性分析，为投资决策提供数据支持。

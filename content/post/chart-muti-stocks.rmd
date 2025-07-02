@@ -1,6 +1,6 @@
 ---
-title: "MACD指标择时交易策略分析"
-author: "Ski/格物堂"
+title: "R语言与多股票波动性及相关性的可视化"
+author: "格物堂"
 date: "2025-06-10 15:36:25"
 description: null
 lead: null
@@ -8,19 +8,15 @@ authorbox: false
 sidebar: false
 pager: false
 tags:
-  - "动量"
-  - "轮动策略"
-  - "有效性"
+  - "相关性"
+  - "股票"
+  - "波动性"
   - "R"
 categories:
   - "量化投资"
-documentclass: ctexart
 output:
-  rticles::ctex:
-    fig_caption: true
-    number_sections: true
-    toc: true
-    toc_depth: 2
+  html_document:
+    preserve_yaml: true
 ---
 
 ```{R setup, include=FALSE}
@@ -42,8 +38,8 @@ library(ggplot2)    # 可视化
 library(zoo)        # 时间序列处理
 library(dplyr)
 library(showtext)
-font_add("SimHei", "SimHei.ttf")  # 加载SimHei字体
-showtext_auto()  # 自动启用showtext
+font_add("SimHei", regular = "SimHei.ttf") 
+showtext_auto()
 ```
 
 \newpage

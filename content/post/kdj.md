@@ -7,6 +7,7 @@ lead: null
 authorbox: false
 sidebar: false
 pager: false
+mathjax: true
 tags:
   - "R"
   - "KDJ"
@@ -14,9 +15,8 @@ tags:
 categories:
   - "量化投资"
 output:
-  md_document:
+  html_document:
     preserve_yaml: true
-    variant: markdown_github  
 ---
 
 ``` r
@@ -29,17 +29,33 @@ knitr::opts_chunk$set(echo = TRUE,
                       fig.height = 4, 
                       out.width = "90%", 
                       width = "90%")
+library(showtext)
+```
+
+```         
+## Loading required package: sysfonts
+```
+
+```         
+## Loading required package: showtextdb
+```
+
+``` r
+font_add("SimHei", regular = "SimHei.ttf") 
+showtext_auto()
 ```
 
 # 引言
 
-技术分析是金融市场中常用的分析方法，其中KDJ指标是一种重要的随机指标，能够反映价格波动的强弱、超买超卖现象以及市场趋势变化。本研究旨在通过R语言实现基于KDJ指标的股票择时交易策略，并通过历史数据回测寻找最佳参数组合。
+技术分析是金融市场中常用的分析方法，其中KDJ指标是一种重要的随机指标，能够反映价格波动的强弱、超买超卖现象以及市场趋势变化。本
+研究旨在通过R语言实现基于KDJ指标的股票择时交易策略，并通过历史数据回测寻找最佳参数组合。
 
 # 研究方法
 
 ## 数据获取与处理
 
-我们将使用`quantmod`包获取股票数据，并使用`quantstrat`包进行策略回测。首先加载所需的包：
+我们将使用`quantmod`包获取股票数据，并使用`quantstrat`包进行策略回测。首
+先加载所需的包：
 
 ``` r
 # 加载必要的包
@@ -84,9 +100,9 @@ head(AAPL)
 ##               Open    High     Low   Close    Volume Adjusted
 ## 2018-01-02 42.5400 43.0750 42.3150 43.0650 102223600 40.42682
 ## 2018-01-03 43.1325 43.6375 42.9900 43.0575 118071600 40.41978
-## 2018-01-04 43.1350 43.3675 43.0200 43.2575  89738400 40.60754
-## 2018-01-05 43.3600 43.8425 43.2625 43.7500  94640000 41.06986
-## 2018-01-08 43.5875 43.9025 43.4825 43.5875  82271200 40.91732
+## 2018-01-04 43.1350 43.3675 43.0200 43.2575  89738400 40.60753
+## 2018-01-05 43.3600 43.8425 43.2625 43.7500  94640000 41.06987
+## 2018-01-08 43.5875 43.9025 43.4825 43.5875  82271200 40.91731
 ## 2018-01-09 43.6375 43.7650 43.3525 43.5825  86336000 40.91262
 ```
 
@@ -95,35 +111,42 @@ summary(AAPL)
 ```
 
 ```         
-##      Index                 Open             High             Low             Close       
-##  Min.   :2018-01-02   Min.   : 35.99   Min.   : 36.43   Min.   : 35.50   Min.   : 35.55  
-##  1st Qu.:2019-05-10   1st Qu.: 51.97   1st Qu.: 52.32   1st Qu.: 51.67   1st Qu.: 52.03  
-##  Median :2020-09-15   Median :114.67   Median :116.07   Median :112.84   Median :114.97  
-##  Mean   :2020-09-14   Mean   :102.38   Mean   :103.62   Mean   :101.24   Mean   :102.48  
-##  3rd Qu.:2022-01-20   3rd Qu.:146.36   3rd Qu.:148.00   3rd Qu.:145.15   3rd Qu.:146.61  
-##  Max.   :2023-05-31   Max.   :182.63   Max.   :182.94   Max.   :179.12   Max.   :182.01  
-##      Volume             Adjusted     
-##  Min.   : 35195900   Min.   : 33.87  
-##  1st Qu.: 76144000   1st Qu.: 49.73  
-##  Median : 98135650   Median :111.96  
-##  Mean   :112825725   Mean   :100.02  
-##  3rd Qu.:133535000   3rd Qu.:143.97  
-##  Max.   :426510000   Max.   :178.65
+##      Index                 Open             High             Low        
+##  Min.   :2018-01-02   Min.   : 35.99   Min.   : 36.43   Min.   : 35.50  
+##  1st Qu.:2019-05-10   1st Qu.: 51.97   1st Qu.: 52.32   1st Qu.: 51.67  
+##  Median :2020-09-15   Median :114.67   Median :116.07   Median :112.84  
+##  Mean   :2020-09-14   Mean   :102.38   Mean   :103.62   Mean   :101.24  
+##  3rd Qu.:2022-01-20   3rd Qu.:146.36   3rd Qu.:148.00   3rd Qu.:145.15  
+##  Max.   :2023-05-31   Max.   :182.63   Max.   :182.94   Max.   :179.12  
+##      Close            Volume             Adjusted     
+##  Min.   : 35.55   Min.   : 35195900   Min.   : 33.87  
+##  1st Qu.: 52.03   1st Qu.: 76144000   1st Qu.: 49.73  
+##  Median :114.97   Median : 98135650   Median :111.96  
+##  Mean   :102.48   Mean   :112825725   Mean   :100.02  
+##  3rd Qu.:146.61   3rd Qu.:133535000   3rd Qu.:143.97  
+##  Max.   :182.01   Max.   :426510000   Max.   :178.65
 ```
 
 ## KDJ指标计算原理
 
-KDJ指标由三条曲线组成：K线、D线和J线。其计算基于以下步骤：
+KDJ指标由三条曲线组成：K线、D线和J线。其
+计算基于以下步骤：
 
 1.  计算未成熟随机值RSV： $$
-    RSV = \frac{C_t - L_n}{H_n - L_n} \times 100\\
+    RSV = \frac{C_t - L_n}{H_n - L_n} \times 100\%
     $$
 
-    其中，*C*<sub>*t*</sub> 为当日收盘价，*L*<sub>*n*</sub> 为n日内最低价，*H*<sub>*n*</sub> 为n日内最高价。
+    其中，$C_t$为当日收盘价，$L_n$为n日内最低价，$H_n$为n日内最高价。
 
-2.  计算K值、D值和J值： *K*<sub>*t*</sub> = *α* × *R**S**V*<sub>*t*</sub> + (1 − *α*) × *K*<sub>*t* − 1</sub> *D*<sub>*t*</sub> = *β* × *K*<sub>*t*</sub> + (1 − *β*) × *D*<sub>*t* − 1</sub> *J*<sub>*t*</sub> = 3 × *K*<sub>*t*</sub> − 2 × *D*<sub>*t*</sub>
+2.  计算K值、D值和J值： $$
+    K_{t} = \alpha \times RSV_{t} + (1-\alpha) \times K_{t-1}
+    $$ $$
+    D_{t} = \beta \times K_t + (1-\beta) \times D_{t-1}
+    $$ $$
+    J_t = 3 \times K_t - 2 \times D_t
+    $$
 
-    通常，*α* = 1/3，*β* = 1/3 ，n=9。
+通常，$\alpha = 1/3$，$\beta = 1/3$，n=9。
 
 ## 交易策略设计
 
@@ -425,11 +448,12 @@ tryCatch({
 ## 最大回撤: 0.1357
 ```
 
-<img src="kdj_files/figure-markdown_github/strategy-1.png" width="90%" style="display: block; margin: auto;" />
+<img src="/post/kdj_files/figure-html/strategy-1.png" width="90%" style="display: block; margin: auto;" />
 
 # 参数优化
 
-KDJ指标的主要参数包括RSV周期(n)、K值平滑因子(k)和D值平滑因子(d)。为了找到最佳参数组合，我们将进行参数网格搜索：
+KDJ指标的主要参数包括RSV周期(n)、K值平滑因子(k)和D值平滑因子(d)。为
+了找到最佳参数组合，我们将进行参数网格搜索：
 
 ``` r
 # 设置参数网格
@@ -1844,7 +1868,7 @@ ggplot(results, aes(x = factor(n), y = SharpeRatio, color = factor(m1), shape = 
   theme_minimal()
 ```
 
-<img src="kdj_files/figure-markdown_github/optimization-1.png" width="90%" style="display: block; margin: auto;" />
+<img src="/post/kdj_files/figure-html/optimization-1.png" width="90%" style="display: block; margin: auto;" />
 
 # 基于最佳参数的回测
 
@@ -2171,7 +2195,7 @@ charts.PerformanceSummary(cbind(port_ret_best, buy_hold_ret),
                           wealth.index = TRUE)
 ```
 
-<img src="kdj_files/figure-markdown_github/backtest-1.png" width="90%" style="display: block; margin: auto;" />
+<img src="/post/kdj_files/figure-html/backtest-1.png" width="90%" style="display: block; margin: auto;" />
 
 # 交易信号可视化
 
@@ -2214,13 +2238,13 @@ price_plot <- ggplot(plot_data, aes(x = Date, y = Close)) +
   ) +
   # 标记买卖点
   geom_point(data = buy_points, aes(y = Close), 
-             color = "green", size = 3, shape = 16, alpha = 0.8) +
+             color = "green", size = 1, shape = 16, alpha = 0.8) +
   geom_point(data = sell_points, aes(y = Close), 
-             color = "red", size = 3, shape = 16, alpha = 0.8) +
+             color = "red", size = 1, shape = 16, alpha = 0.8) +
   # 添加买卖点标记文本
-  geom_text(data = buy_points, aes(y = Close + 5, label = "Buy"), 
+  geom_text(data = buy_points, aes(y = Close + 5, label = "B"), 
             color = "darkgreen", size = 3.5, fontface = "bold") +
-  geom_text(data = sell_points, aes(y = Close - 5, label = "Sell"), 
+  geom_text(data = sell_points, aes(y = Close - 5, label = "S"), 
             color = "darkred", size = 3.5, fontface = "bold") +
   # 设置标题和坐标轴标签
   labs(
@@ -2257,11 +2281,11 @@ kdj_plot <- ggplot(plot_data, aes(x = Date)) +
   geom_line(aes(y = D, color = "D线"), size = 1) +
   geom_line(aes(y = J, color = "J线"), size = 1) +
   # 添加超买超卖区域
-  geom_ribbon(aes(ymin = 80, ymax = 100), fill = "red", alpha = 0.1) +
-  geom_ribbon(aes(ymin = 0, ymax = 20), fill = "green", alpha = 0.1) +
+  geom_ribbon(aes(ymin = 80, ymax = 100), fill = "salmon", alpha = 0.3) +
+  geom_ribbon(aes(ymin = 0, ymax = 20), fill = "lightgreen", alpha = 0.3) +
   # 添加超买超卖线
-  geom_hline(yintercept = 80, color = "red", linetype = "dashed", size = 0.8) +
-  geom_hline(yintercept = 20, color = "green", linetype = "dashed", size = 0.8) +
+  geom_hline(yintercept = 80, color = "salmon", linetype = "dashed", size = 0.8) +
+  geom_hline(yintercept = 20, color = "lightgreen", linetype = "dashed", size = 0.8) +
   # 添加标记文本
   annotate("text", x = min(plot_data$Date), y = 90, label = "超买区域", 
            color = "red", size = 3.5) +
@@ -2310,7 +2334,7 @@ combined_plot <- gridExtra::grid.arrange(
 )
 ```
 
-<img src="kdj_files/figure-markdown_github/visualization-1.png" width="90%" style="display: block; margin: auto;" />
+<img src="/post/kdj_files/figure-html/visualization-1.png" width="90%" style="display: block; margin: auto;" />
 
 ``` r
 print(combined_plot)
@@ -2318,10 +2342,10 @@ print(combined_plot)
 
 ```         
 ## TableGrob (3 x 1) "arrange": 3 grobs
-##   z     cells    name                 grob
-## 1 1 (2-2,1-1) arrange       gtable[layout]
-## 2 2 (3-3,1-1) arrange       gtable[layout]
-## 3 3 (1-1,1-1) arrange text[GRID.text.3608]
+##   z     cells    name                grob
+## 1 1 (2-2,1-1) arrange      gtable[layout]
+## 2 2 (3-3,1-1) arrange      gtable[layout]
+## 3 3 (1-1,1-1) arrange text[GRID.text.216]
 ```
 
 ``` r
@@ -2455,7 +2479,7 @@ if (nrow(trades) > 0) {
 ## 1          9      557.3        910         14        364.1
 ```
 
-<img src="kdj_files/figure-markdown_github/trade_analysis-1.png" width="90%" style="display: block; margin: auto;" />
+<img src="/post/kdj_files/figure-html/trade_analysis-1.png" width="90%" style="display: block; margin: auto;" />
 
 # 结论与展望
 
