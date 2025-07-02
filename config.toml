@@ -47,5 +47,5 @@ googleAnalytics = "" # Enable Google Analytics by entering your tracking id
   smartypants = false  # 禁用智能引号转换，避免干扰 LaTeX 公式
   [markup.goldmark]
     [markup.goldmark.renderer]
-      unsafe = true  # 允许原始 HTML 和 LaTeX 符号
+      unsafe = false  # 允许原始 HTML 和 LaTeX 符号
       
