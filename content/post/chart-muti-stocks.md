@@ -21,8 +21,6 @@ output:
 
 
 
-\newpage
-
 # 前言
 
 在量化投资建模过程之前，有时候，我们需要对多只股票的价格走势、收益率序列、波动率等进行分析。下面给出使用 R 语言比较多只股票价格走势的完整解决方案。方案涵盖数据获取、清洗、可视化及基础分析全流程：
@@ -354,7 +352,7 @@ ggcorrplot(
 
 ``` r
 # 导出为 CSV
-write_csv(stock_data, "stock_prices.csv")
+# write_csv(stock_data, "stock_prices.csv")
 
 # 导出为 Excel（需安装 writexl 包）
 # install.packages("writexl")

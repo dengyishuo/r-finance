@@ -18,10 +18,10 @@ categories:
 output:
   html_document:
     preserve_yaml: true
-editor_options: 
-  markdown: 
-    wrap: 50
 ---
+
+
+
 
 # 引言
 
@@ -34,6 +34,7 @@ editor_options:
 ## 数据获取与处理
 
 我们将使用`quantmod`包获取股票数据，并使用`quantstrat`包进行策略回测。首先加载所需的包：
+
 
 ``` r
 # 加载必要的包
@@ -51,7 +52,10 @@ font_add("SimHei", regular = "SimHei.ttf")
 showtext_auto()
 ```
 
+
+
 接下来，我们获取TSLA的历史数据作为研究对象：
+
 
 ``` r
 # 设置获取数据的起始和结束日期
@@ -65,7 +69,7 @@ getSymbols("TSLA",
            to = enddate.st)
 ```
 
-```         
+```
 ## [1] "TSLA"
 ```
 
@@ -81,7 +85,7 @@ colnames(TSLA) <- c("Open",
 head(TSLA)
 ```
 
-```         
+```
 ##                Open     High      Low    Close    Volume Adjusted
 ## 2018-01-02 20.80000 21.47400 20.73333 21.36867  65283000 21.36867
 ## 2018-01-03 21.40000 21.68333 21.03667 21.15000  67822500 21.15000
@@ -95,7 +99,7 @@ head(TSLA)
 summary(TSLA)
 ```
 
-```         
+```
 ##      Index                 Open             High             Low        
 ##  Min.   :2018-01-02   Min.   : 12.07   Min.   : 12.45   Min.   : 11.80  
 ##  1st Qu.:2019-05-10   1st Qu.: 21.42   1st Qu.: 21.82   1st Qu.: 21.04  
@@ -116,43 +120,49 @@ summary(TSLA)
 
 MACD指标由三条曲线组成：DIF线、DEA线和MACD柱状图。其计算基于以下步骤：
 
-1.  计算短期和长期EMA： $$
-    EMA_{s} = \frac{2}{N_{s} + 1} \times (Cl - EMA_{s}^{pre}) + EMA_{s}^{pre}
-    $$
+1. 计算短期和长期EMA：
+$$
+EMA_{s} = \frac{2}{N_{s} + 1} \times (Cl - EMA_{s}^{pre}) + EMA_{s}^{pre}
+$$
 
 $$
 EMA_{l} = \frac{2}{N_{l} + 1} \times (Cl - EMA_{l}^{pre}) + EMA_{l}^{pre}
 $$
 
-其中，$N_{s}$通常为12，$N_{l}$通常为26。
+其中，$N_{s}$ 通常为12，$N_{l}$ 通常为26。
 
-1.  计算DIF线： $$
-    DIF = EMA_{s} - EMA_{l}
-    $$
+2. 计算DIF线：
+$$
+DIF = EMA_{s} - EMA_{l}
+$$
 
-2.  计算DEA线： $$
-    DEA = \frac{2}{N_{signal} + 1} \times (DIF - DEA^{pre}) + DEA^{pre}
-    $$ 其中，$N_{signal}$通常为9。
+3. 计算DEA线：
+$$
+DEA = \frac{2}{N_{signal} + 1} \times (DIF - DEA^{pre}) + DEA^{pre}
+$$
+   其中，$N_{signal}$ 通常为9。
 
-3.  计算MACD柱状图： $$
-    MACD = DIF - DEA
-    $$
+4. 计算MACD柱状图：
+$$
+MACD = DIF - DEA
+$$
 
 ## 交易策略设计
 
 我们将基于MACD指标设计以下交易策略：
 
--   买入信号：当DIF线从下方上穿DEA线（金叉）
--   卖出信号：当DIF线从上方下穿DEA线（死叉）
+- 买入信号：当DIF线从下方上穿DEA线（金叉）
+- 卖出信号：当DIF线从上方下穿DEA线（死叉）
 
 下面我们使用`quantstrat`包实现这个策略：
+
 
 ``` r
 # 清理历史环境。
 reset_strategy_env()
 ```
 
-```         
+```
 ## 策略环境已重置
 ```
 
@@ -172,7 +182,7 @@ symbols.st <- "TSLA"
 currency("USD")
 ```
 
-```         
+```
 ## [1] "USD"
 ```
 
@@ -180,7 +190,7 @@ currency("USD")
 stock("TSLA", currency = "USD", multiplier = 1)
 ```
 
-```         
+```
 ## [1] "TSLA"
 ```
 
@@ -188,7 +198,7 @@ stock("TSLA", currency = "USD", multiplier = 1)
 initPortf(portfolio.st, symbols = symbols.st)
 ```
 
-```         
+```
 ## [1] "MACD_Portfolio"
 ```
 
@@ -196,7 +206,7 @@ initPortf(portfolio.st, symbols = symbols.st)
 initAcct(account.st, portfolios = portfolio.st, initEq = initEq.st)
 ```
 
-```         
+```
 ## [1] "MACD_Account"
 ```
 
@@ -214,7 +224,7 @@ add.indicator(strategy.st,
               label = "MACD_8_21_35")
 ```
 
-```         
+```
 ## [1] "MACD_Strategy"
 ```
 
@@ -229,7 +239,7 @@ add.signal(strategy.st,
            label = "Buy_Signal")
 ```
 
-```         
+```
 ## [1] "MACD_Strategy"
 ```
 
@@ -243,7 +253,7 @@ add.signal(strategy.st,
            label = "Sell_Signal")
 ```
 
-```         
+```
 ## [1] "MACD_Strategy"
 ```
 
@@ -262,7 +272,7 @@ add.rule(strategy.st,
          label = "Enter_Long")
 ```
 
-```         
+```
 ## [1] "MACD_Strategy"
 ```
 
@@ -280,7 +290,7 @@ add.rule(strategy.st,
          label = "Exit_Long")
 ```
 
-```         
+```
 ## [1] "MACD_Strategy"
 ```
 
@@ -301,7 +311,7 @@ add.rule(strategy.st,
          label = "Stop_Loss")
 ```
 
-```         
+```
 ## [1] "MACD_Strategy"
 ```
 
@@ -342,7 +352,7 @@ tryCatch({
 })
 ```
 
-```         
+```
 ## [1] "2018-04-11 00:00:00 TSLA 1000 @ 20.0620002746582"
 ## [1] "2018-05-18 00:00:00 TSLA -1000 @ 18.4546661376953"
 ## [1] "2018-05-31 00:00:00 TSLA 1000 @ 18.9820003509521"
@@ -434,6 +444,7 @@ tryCatch({
 
 MACD指标的主要参数包括快速EMA周期(nFast)、慢速EMA周期(nSlow)和信号线周期(nSig)。
 为了找到最佳参数组合，我们将进行参数网格搜索：
+
 
 ``` r
 # 设置参数网格
@@ -576,7 +587,7 @@ for (i in 1:n_combinations) {
 }
 ```
 
-```         
+```
 ## 测试参数组合 1/27: nFast=8, nSlow=22, nSig=7
 ## 策略环境已重置
 ## [1] "2018-02-21 00:00:00 TSLA 1000 @ 22.2199993133545"
@@ -3504,7 +3515,7 @@ best_params <- results[which.max(results$SharpeRatio), ]
 print("最佳参数组合:")
 ```
 
-```         
+```
 ## [1] "最佳参数组合:"
 ```
 
@@ -3512,7 +3523,7 @@ print("最佳参数组合:")
 print(best_params)
 ```
 
-```         
+```
 ##   nFast nSlow nSig SharpeRatio    Return MaxDrawdown TradeCount
 ## 1     8    22    7   0.7357213 0.3363681   0.1447274        126
 ```
@@ -3537,12 +3548,13 @@ ggplot(results, aes(x = as.factor(nFast),
 
 根据参数优化结果，我们使用最佳参数组合重新进行回测，并详细分析策略表现：
 
+
 ``` r
 # 清理历史环境。
 reset_strategy_env()
 ```
 
-```         
+```
 ## 策略环境已重置
 ```
 
@@ -3561,7 +3573,7 @@ symbols.st <- "TSLA"
 currency("USD")
 ```
 
-```         
+```
 ## [1] "USD"
 ```
 
@@ -3569,7 +3581,7 @@ currency("USD")
 stock("TSLA", currency = "USD", multiplier = 1)
 ```
 
-```         
+```
 ## [1] "TSLA"
 ```
 
@@ -3577,7 +3589,7 @@ stock("TSLA", currency = "USD", multiplier = 1)
 initPortf(portfolio.st, symbols = symbols.st)
 ```
 
-```         
+```
 ## [1] "MACD_Portfolio"
 ```
 
@@ -3585,7 +3597,7 @@ initPortf(portfolio.st, symbols = symbols.st)
 initAcct(account.st, portfolios = portfolio.st, initEq = initEq.st)
 ```
 
-```         
+```
 ## [1] "MACD_Account"
 ```
 
@@ -3612,7 +3624,7 @@ add.indicator(strategy.st,
               )
 ```
 
-```         
+```
 ## [1] "MACD_Strategy"
 ```
 
@@ -3640,7 +3652,7 @@ add.signal(strategy.st,
            label = "Buy_Signal")
 ```
 
-```         
+```
 ## [1] "MACD_Strategy"
 ```
 
@@ -3653,7 +3665,7 @@ add.signal(strategy.st,
            label = "Sell_Signal")
 ```
 
-```         
+```
 ## [1] "MACD_Strategy"
 ```
 
@@ -3672,7 +3684,7 @@ add.rule(strategy.st,
          label = "Enter_Long")
 ```
 
-```         
+```
 ## [1] "MACD_Strategy"
 ```
 
@@ -3690,7 +3702,7 @@ add.rule(strategy.st,
          label = "Exit_Long")
 ```
 
-```         
+```
 ## [1] "MACD_Strategy"
 ```
 
@@ -3699,7 +3711,7 @@ add.rule(strategy.st,
 applyStrategy(strategy = strategy.st, portfolios = portfolio.st)
 ```
 
-```         
+```
 ## [1] "2018-02-21 00:00:00 TSLA 1000 @ 22.2199993133545"
 ## [1] "2018-03-02 00:00:00 TSLA -1000 @ 22.3413333892822"
 ## [1] "2018-03-14 00:00:00 TSLA 1000 @ 21.775333404541"
@@ -3831,7 +3843,7 @@ applyStrategy(strategy = strategy.st, portfolios = portfolio.st)
 updatePortf(portfolio.st)
 ```
 
-```         
+```
 ## [1] "MACD_Portfolio"
 ```
 
@@ -3839,7 +3851,7 @@ updatePortf(portfolio.st)
 updateAcct(account.st)
 ```
 
-```         
+```
 ## [1] "MACD_Account"
 ```
 
@@ -3847,7 +3859,7 @@ updateAcct(account.st)
 updateEndEq(account.st)
 ```
 
-```         
+```
 ## [1] "MACD_Account"
 ```
 
@@ -3882,7 +3894,7 @@ results_df <- data.frame(
 print("策略评估结果:")
 ```
 
-```         
+```
 ## [1] "策略评估结果:"
 ```
 
@@ -3890,7 +3902,7 @@ print("策略评估结果:")
 print(results_df)
 ```
 
-```         
+```
 ##   Strategy 年化夏普比率  总收益率  最大回撤 交易次数
 ## 1 MACD策略    0.7357213 0.3363681 0.1447274      126
 ## 2 买入持有    0.7942006 8.5434117 0.7363222       NA
@@ -3909,6 +3921,7 @@ charts.PerformanceSummary(cbind(port_ret_best, buy_hold_ret),
 # 交易信号可视化
 
 为了更直观地理解MACD指标的交易信号，我们将可视化价格走势和MACD指标，并标记买卖点：
+
 
 ``` r
 # 1. 计算MACD指标
@@ -4132,7 +4145,7 @@ combined_plot <- gridExtra::grid.arrange(
 print(combined_plot)
 ```
 
-```         
+```
 ## TableGrob (3 x 1) "arrange": 3 grobs
 ##   z     cells    name                grob
 ## 1 1 (2-2,1-1) arrange      gtable[layout]
@@ -4143,6 +4156,7 @@ print(combined_plot)
 # 交易频率分析
 
 接下来，我们分析交易频率和持有期，这对于评估策略的实用性非常重要：
+
 
 ``` r
 # 假设getTxns(portfolio.st,"AAPL")已获取交易数据
@@ -4274,7 +4288,7 @@ if (nrow(trades) > 0) {
 }
 ```
 
-```         
+```
 ## [1] "交易持有期统计:"
 ##   总交易次数 平均持有期 最长持有期 最短持有期 持有期标准差
 ## 1         62       15.1         51          1         11.4
@@ -4288,29 +4302,28 @@ if (nrow(trades) > 0) {
 
 通过对MACD指标的参数优化和回测分析，我们得出以下结论：
 
-1.  在研究期间内，基于MACD指标的择时策略在特定参数组合下能够取得优于简单买入持有策
-    略的风险调整后收益。
-2.  最佳参数组合显示，快速EMA周期、慢速EMA周期和信号线周期对策略表现有显著影响。
-3.  策略的交易频率适中，平均持有期符合中期投资风格。
+1. 在研究期间内，基于MACD指标的择时策略在特定参数组合下能够取得优于简单买入持有策
+略的风险调整后收益。
+2. 最佳参数组合显示，快速EMA周期、慢速EMA周期和信号线周期对策略表现有显著影响。
+3. 策略的交易频率适中，平均持有期符合中期投资风格。
 
 ## 策略局限性
 
 尽管MACD指标在趋势市场中表现良好，但仍存在以下局限性：
 
-1.  回测结果受历史数据限制，未来表现可能与历史表现不同。
-2.  策略在震荡市场环境中可能产生更多的虚假信号。
-3.  交易成本和滑点未被充分考虑，实际应用中可能降低策略收益。
+1. 回测结果受历史数据限制，未来表现可能与历史表现不同。
+2. 策略在震荡市场环境中可能产生更多的虚假信号。
+3. 交易成本和滑点未被充分考虑，实际应用中可能降低策略收益。
 
 ## 未来研究方向
 
-1.  结合其他技术指标（如KDJ、RSI等）构建多指标复合策略。
-2.  研究不同市场环境下MACD指标的适用性，开发自适应参数机制。
-3.  考虑交易成本、滑点和税费等实际因素，优化策略实现。
+1. 结合其他技术指标（如KDJ、RSI等）构建多指标复合策略。
+2. 研究不同市场环境下MACD指标的适用性，开发自适应参数机制。
+3. 考虑交易成本、滑点和税费等实际因素，优化策略实现。
 
 通过本研究，我们展示了如何使用R语言和相关金融包实现技术指标的回测和优化，为量化交
 易策略的开发提供了实用的方法和思路。
 
 这篇文章提供了一个完整的MACD指标择时交易策略分析流程，包括数据获取、指标计算、策
-略实现、参数优化、回测分析和可视化。您可以直接将代码复制到R
-Markdown环境中运行，或者根据需要进行调整和扩展。希望这对您的研究和实践有所帮助！
+略实现、参数优化、回测分析和可视化。您可以直接将代码复制到R Markdown环境中运行，或者根据需要进行调整和扩展。希望这对您的研究和实践有所帮助！
 如果有任何问题或需要进一步的讨论，请随时联系我。

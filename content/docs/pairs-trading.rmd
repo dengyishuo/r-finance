@@ -3,7 +3,11 @@ title: "协整理论与配对交易策略分析"
 author: "Ski"
 date: "2025-06-12 15:26:31"
 lead: null
-description: null
+description: "本文通过实证分析展示了协整理论在配对交易策略中的应用。利用Quantmod包获取金融时间
+序列数据，结合tseries和urca等统计分析工具，我们识别了具有协整关系的股票对，并构建
+了基于误差修正模型的配对交易策略。回测结果表明，该策略在样本内和样本外均表现出稳
+定的超额收益，验证了协整理论在配对交易中的有效性。研究还分析了策略参数对表现的影
+响，为实际应用提供了参考。"
 authorbox: false
 sidebar: false
 pager: false
@@ -30,14 +34,6 @@ library(showtext)
 font_add("SimHei", regular = "SimHei.ttf") 
 showtext_auto()
 ```
-
-# 摘要
-
-本文通过实证分析展示了协整理论在配对交易策略中的应用。利用Quantmod包获取金融时间
-序列数据，结合tseries和urca等统计分析工具，我们识别了具有协整关系的股票对，并构建
-了基于误差修正模型的配对交易策略。回测结果表明，该策略在样本内和样本外均表现出稳
-定的超额收益，验证了协整理论在配对交易中的有效性。研究还分析了策略参数对表现的影
-响，为实际应用提供了参考。
 
 # 引言
 
@@ -82,7 +78,7 @@ $$
 \Delta y_{t} = \alpha + \beta t + \gamma y_{t-1} + \sum_{i=1}^{p} \delta_{i} \Delta y_{t-i} +\varepsilon_{t}
 $$
 
-其中,$\gamma=0$表示存在单位根。
+其中, $\gamma=0$ 表示存在单位根。
 
 ### KPSS检验（Kwiatkowski-Phillips-Schmidt-Shin检验）
 
@@ -96,8 +92,8 @@ KPSS检验与ADF检验相反，其原假设为序列是平稳的，备择假设�
 ### Engle-Granger两步法
 
 Engle-Granger两步法的步骤如下：
-1. 对两个非平稳序列进行线性回归:$y_{t} = \alpha + \beta x_{t} + \varepsilon_{t}$ 
-2. 检验回归残差序列:$\hat{\varepsilon}_{t}$是否平稳
+1. 对两个非平稳序列进行线性回归: $y_{t} = \alpha + \beta x_{t} + \varepsilon_{t}$ 
+2. 检验回归残差序列: $\hat{\varepsilon}_{t}$ 是否平稳
 3. 如果残差序列平稳，则两个序列存在协整关系
 
 ### Johansen检验
@@ -118,7 +114,7 @@ $$
 \Delta x_{t}=\alpha_{2}+\sum_{i=1}^{p}\beta_{2i}\Delta x_{t-i}+\sum_{i=0}^{q}\gamma_{2i}\Delta y_{t-i}+\lambda_{2}(y_{t-1}-\beta x_{t-1})+\varepsilon_{2t}
 $$
 
-其中，$(y_{t-1}-\beta x_{t-1})$是误差修正项，表示对长期均衡关系的偏离。
+其中，$(y_{t-1}-\beta x_{t-1})$ 是误差修正项，表示对长期均衡关系的偏离。
 
 # 实证分析
 

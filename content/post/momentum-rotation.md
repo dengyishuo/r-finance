@@ -19,21 +19,7 @@ output:
 ---
 
 
-```{R setup, include = FALSE}
-knitr::opts_chunk$set(
-  echo = TRUE,
-  warning = FALSE,
-  message = FALSE,
-  fig.pos = "H",
-  fig.align = "center",
-  out.width = "90%",
-  width = "90%"
-)
 
-library(showtext)
-font_add("SimHei", regular="SimHei.ttf") 
-showtext_auto()
-```
 
 # 引言
 
@@ -52,7 +38,8 @@ showtext_auto()
 
 首先加载必要的R包并获取股票数据。我们将选取多只大盘股和小盘股作为研究对象。
 
-```{R pkg, message=FALSE, warning=FALSE}
+
+``` r
 # 加载必要的R包
 library(quantmod)
 library(PerformanceAnalytics)
@@ -68,7 +55,8 @@ library(magrittr)
 接下来，我们获取股票数据。我们将选择10只大盘股和10只小盘股作为样本。大盘股选取标
 普500指数成分股中市值最大的10只，小盘股选取罗素2000指数成分股中市值最小的10只。
 
-```{R dataPreparation}
+
+``` r
 # 设置起止日期
 start_date <- "2018-01-01"
 end_date <- "2023-01-01"
@@ -107,7 +95,20 @@ for (symbol in all_symbols) {
     }
   )
 }
+```
 
+```
+## Successfully downloaded AAPL 
+## Successfully downloaded MSFT 
+## Successfully downloaded AMZN 
+## Successfully downloaded TSLA 
+## Successfully downloaded ARQT 
+## Successfully downloaded AVXL 
+## Successfully downloaded BPMC 
+## Successfully downloaded CELZ
+```
+
+``` r
 # 过滤掉下载失败的股票
 valid_symbols <- names(stock_data)
 large_cap_symbols <- large_cap_symbols[large_cap_symbols %in% valid_symbols]
@@ -138,9 +139,21 @@ for (symbol in valid_symbols) {
 }
 ```
 
+```
+## Successfully downloaded OOS data for AAPL 
+## Successfully downloaded OOS data for MSFT 
+## Successfully downloaded OOS data for AMZN 
+## Successfully downloaded OOS data for TSLA 
+## Successfully downloaded OOS data for ARQT 
+## Successfully downloaded OOS data for AVXL 
+## Successfully downloaded OOS data for BPMC 
+## Successfully downloaded OOS data for CELZ
+```
+
 让我们计算并可视化大盘股和小盘股的平均价格走势，以便对数据有一个直观的了解。
 
-```{R priceComparison}
+
+``` r
 # 函数：合并多只股票的收盘价并处理缺失值
 merge_stock_prices <- function(symbols, stock_data_list) {
   merged_prices <- NULL
@@ -205,6 +218,8 @@ ggplot(price_data, aes(x = Date)) +
   scale_color_manual(values = c("大盘股" = "blue", "小盘股" = "red"))
 ```
 
+<img src="/post/momentum-rotation_files/figure-html/priceComparison-1.png" width="90%" style="display: block; margin: auto;" />
+
 # 动量轮动策略实现
 
 下面我们实现基于动量的大盘股/小盘股轮动策略。该策略的核心思想是：比较大盘股和小盘
@@ -212,7 +227,8 @@ ggplot(price_data, aes(x = Date)) +
 
 首先定义一个函数来实现这个策略：
 
-```{R MomentumRotationStrategy}
+
+``` r
 # 改进的动量轮动策略函数
 momentum_rotation_strategy <- function(large_cap_data, small_cap_data,
                                        lookback_period = 20,
@@ -347,7 +363,8 @@ momentum_rotation_strategy <- function(large_cap_data, small_cap_data,
 
 现在我们将这个策略应用到数据上，并评估其表现：
 
-```{R ApplyStrategy}
+
+``` r
 # 应用策略到数据
 strategy_results <- momentum_rotation_strategy(
   lapply(large_cap_symbols, function(symbol) stock_data[[symbol]]),
@@ -393,7 +410,11 @@ ggplot(performance_data_long,
   )) +
   theme_minimal() +
   theme(legend.title = element_blank())
+```
 
+<img src="/post/momentum-rotation_files/figure-html/ApplyStrategy-1.png" width="90%" style="display: block; margin: auto;" />
+
+``` r
 # 计算策略表现指标
 library(PerformanceAnalytics)
 performance_metrics <- data.frame(
@@ -425,6 +446,14 @@ performance_metrics <- data.frame(
 print(performance_metrics)
 ```
 
+```
+##                              Strategy Total_Return Sharpe_Ratio Max_Drawdown
+## X2022.12.30      Large Cap Buy & Hold    1.8775824    0.4884327    0.5331828
+## X2022.12.30.1    Small Cap Buy & Hold   -0.8534490   -0.6581043    0.9683605
+## X2022.12.30.2 Equal Weight Buy & Hold    0.5120667   -0.3795699    0.7173901
+## X2022.12.30.3       Momentum Rotation    7.8035737    0.3099696    0.6298531
+```
+
 # 参数优化
 
 接下来，我们将优化动量轮动策略的参数。主要优化的参数是回看期(lookback_period)、
@@ -432,7 +461,8 @@ print(performance_metrics)
 
 我们将使用网格搜索方法来寻找最优参数组合：
 
-```{r ParameterOptimization}
+
+``` r
 # 参数优化主流程
 pkg <- c(
   "quantmod", "PerformanceAnalytics", "foreach", "doParallel",
@@ -490,7 +520,13 @@ print(paste(
   " 阈值=", best_params$Rebalance_Threshold,
   " 夏普比率=", round(best_params$Sharpe_Ratio, 3)
 ))
+```
 
+```
+## [1] "最优参数组合: 回看期= 60  持有期= 5  阈值= 0.01  夏普比率= 1.347"
+```
+
+``` r
 ggplot(
   optimization_results,
   aes(
@@ -509,11 +545,14 @@ ggplot(
   )
 ```
 
+<img src="/post/momentum-rotation_files/figure-html/ParameterOptimization-1.png" width="90%" style="display: block; margin: auto;" />
+
 # 参数敏感性分析
 
 为了进一步了解策略对不同参数的敏感性，我们将进行更详细的参数敏感性分析。
 
-```{R ParameterSensitivity}
+
+``` r
 # 1. 回看期敏感性分析
 # 创建存储结果的数据框结构
 lookback_sensitivity <- data.frame(
@@ -611,15 +650,28 @@ plot_sensitivity <- function(data, param_name) {
 
 # 生成三个参数的敏感性图表
 plot_sensitivity(lookback_sensitivity, "回看期(天)")
+```
+
+<img src="/post/momentum-rotation_files/figure-html/ParameterSensitivity-1.png" width="90%" style="display: block; margin: auto;" />
+
+``` r
 plot_sensitivity(holding_sensitivity, "持有期(天)")
+```
+
+<img src="/post/momentum-rotation_files/figure-html/ParameterSensitivity-2.png" width="90%" style="display: block; margin: auto;" />
+
+``` r
 plot_sensitivity(threshold_sensitivity, "再平衡阈值")
 ```
+
+<img src="/post/momentum-rotation_files/figure-html/ParameterSensitivity-3.png" width="90%" style="display: block; margin: auto;" />
 
 # 样本外验证
 
 现在我们使用优化后的参数在样本外数据上验证策略的有效性：
 
-```{R outOfSampleValidation}
+
+``` r
 # 使用优化后的参数在样本外数据上测试策略
 oos_result <- momentum_rotation_strategy(
   lapply(large_cap_symbols, function(symbol) oos_data[[symbol]]), # 加载大盘股样本外数据
@@ -666,7 +718,11 @@ ggplot(oos_performance_data_long,
   )) + # 颜色设置
   theme_minimal() + # 使用简洁主题
   theme(legend.title = element_blank()) # 隐藏图例标题
+```
 
+<img src="/post/momentum-rotation_files/figure-html/outOfSampleValidation-1.png" width="90%" style="display: block; margin: auto;" />
+
+``` r
 # 计算样本外策略表现指标
 oos_performance <- data.frame(
   Strategy = c(
@@ -695,6 +751,14 @@ oos_performance <- data.frame(
 
 # 打印样本外性能指标
 print(oos_performance) # 输出策略比较结果
+```
+
+```
+##                              Strategy Total_Return Sharpe_Ratio Max_Drawdown
+## X2023.12.29      Large Cap Buy & Hold    0.7708001    2.9047901    0.1693780
+## X2023.12.29.1    Small Cap Buy & Hold   -0.1367801   -0.4796014    0.6159451
+## X2023.12.29.2 Equal Weight Buy & Hold    0.3170100    0.6359367    0.3230760
+## X2023.12.29.3       Momentum Rotation    0.4791532    0.7933869    0.2934326
 ```
 
 # 结论
