@@ -1,7 +1,9 @@
 [build]
-command = 'git submodule update --init --recursive && hugo --gc --minify'
+# command = 'git submodule update --init --recursive && hugo --gc --minify'
+command = 'hugo --gc --minify'  # 执行Hugo构建，清理缓存并压缩文件
 publish = 'public'
 
 [build.environment]
-HUGO_VERSION = '0.147.7'
+# HUGO_VERSION = '0.147.7'
+HUGO_VERSION = '0.147.7+extended'
 HUGO_ENV = 'production'
