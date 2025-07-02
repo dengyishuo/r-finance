@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>金融数据分析 on R-Finance中国</title><link>https://rfinance.org.cn/categories/%E9%87%91%E8%9E%8D%E6%95%B0%E6%8D%AE%E5%88%86%E6%9E%90/</link><description>Recent content in 金融数据分析 on R-Finance中国</description><generator>Hugo</generator><language>zh-CN</language><lastBuildDate>Thu, 12 Jun 2025 15:26:31 +0000</lastBuildDate><atom:link href="https://rfinance.org.cn/categories/%E9%87%91%E8%9E%8D%E6%95%B0%E6%8D%AE%E5%88%86%E6%9E%90/index.xml" rel="self" type="application/rss+xml"/><item><title>协整理论与配对交易策略分析</title><link>https://rfinance.org.cn/docs/pairs-trading/</link><pubDate>Thu, 12 Jun 2025 15:26:31 +0000</pubDate><guid>https://rfinance.org.cn/docs/pairs-trading/</guid><description>&lt;h1 id="引言">引言&lt;/h1>
+&lt;h2 id="协整理论概述">协整理论概述&lt;/h2>
+&lt;p>协整理论是现代计量经济学的重要发展，由Engle和Granger(1987)提出，为非平稳时间序列
+分析提供了新的方法。如果两个或多个非平稳时间序列的线性组合是平稳的，则称这些序列
+存在协整关系。协整关系反映了变量之间的长期均衡关系，即使短期内可能偏离这种均衡，
+但长期来看会趋向于回归均衡状态。&lt;/p>
+&lt;p>在金融市场中，许多资产价格序列表现出非平稳性（通常为I(1)过程），但某些资产对之间
+可能存在协整关系。这种协整关系为配对交易策略提供了理论基础。&lt;/p>
+&lt;h2 id="配对交易策略">配对交易策略&lt;/h2>
+&lt;p>配对交易是一种市场中性策略，通过同时买入一只被低估的股票和卖出一只被高估的股票，
+从两者价格回归均衡的过程中获利。传统的配对交易策略通常基于统计套利思想，寻找价格
+走势相似的股票对。而基于协整理论的配对交易则更进一步，不仅要求价格走势相似，还要
+求存在长期稳定的均衡关系。&lt;/p>
+&lt;p>配对交易策略的优势在于：&lt;/p>
+&lt;ul>
+&lt;li>市场中性：不受整体市场涨跌影响&lt;/li>
+&lt;li>风险分散：同时持有多头和空头头寸&lt;/li>
+&lt;li>统计基础：基于严格的统计理论&lt;/li>
+&lt;li>可量化：策略参数和交易信号明确&lt;/li>
+&lt;/ul>
+&lt;p>本文将通过实证分析，展示如何应用协整理论构建和评估配对交易策略。&lt;/p>
+&lt;h1 id="理论基础">理论基础&lt;/h1>
+&lt;h2 id="单位根检验">单位根检验&lt;/h2>
+&lt;p>在进行协整分析之前，需要先检验时间序列是否存在单位根，即是否为非平稳序列。常用的
+单位根检验方法包括：&lt;/p>
+&lt;h3 id="adf检验增广迪基-富勒检验">ADF检验（增广迪基-富勒检验）&lt;/h3>
+&lt;p>ADF检验的原假设为序列存在单位根（非平稳），备择假设为序列不存在单位根（平稳）。检
+验统计量为：&lt;/p>
+&lt;p>$$
+\Delta y_{t} = \alpha + \beta t + \gamma y_{t-1} + \sum_{i=1}^{p} \delta_{i} \Delta y_{t-i} +\varepsilon_{t}
+$$&lt;/p>
+&lt;p>其中，$\gamma=0$ 表示存在单位根。&lt;/p>
+&lt;h3 id="kpss检验kwiatkowski-phillips-schmidt-shin检验">KPSS检验（Kwiatkowski-Phillips-Schmidt-Shin检验）&lt;/h3>
+&lt;p>KPSS检验与ADF检验相反，其原假设为序列是平稳的，备择假设为序列存在单位根。&lt;/p>
+&lt;h2 id="协整检验">协整检验&lt;/h2>
+&lt;p>在确认两个序列均为非平稳序列后，需要检验它们是否存在协整关系。常用的协整检验方法
+包括：&lt;/p>
+&lt;h3 id="engle-granger两步法">Engle-Granger两步法&lt;/h3>
+&lt;p>Engle-Granger两步法的步骤如下：&lt;/p>
+&lt;ol>
+&lt;li>对两个非平稳序列进行线性回归:$y_{t} = \alpha + \beta x_{t} + \varepsilon_{t}$&lt;/li>
+&lt;li>检验回归残差序列$\hat{\varepsilon}_{t}$ 是否平稳&lt;/li>
+&lt;li>如果残差序列平稳，则两个序列存在协整关系&lt;/li>
+&lt;/ol>
+&lt;h3 id="johansen检验">Johansen检验&lt;/h3>
+&lt;p>Johansen检验是一种多变量协整检验方法，适用于检验多个时间序列之间的协整关系。它基
+于向量自回归模型(VAR)，通过最大似然估计法估计协整向量。&lt;/p>
+&lt;h2 id="误差修正模型ecm">误差修正模型(ECM)&lt;/h2>
+&lt;p>如果两个序列存在协整关系，则可以建立误差修正模型来描述它们的短期动态关系。误差修
+正模型的一般形式为：&lt;/p></description></item><item><title>马克维兹投资组合理论的有效性分析</title><link>https://rfinance.org.cn/docs/markowitz/</link><pubDate>Thu, 12 Jun 2025 14:00:00 +0000</pubDate><guid>https://rfinance.org.cn/docs/markowitz/</guid><description>&lt;h1 id="摘要">摘要&lt;/h1>
+&lt;p>本文通过实证分析验证了马克维兹现代投资组合理论(MPT)的有效性。利
+用Quantmod包获取市场数据，结合PortfolioAnalytics和PerformanceAnalytics等工具，构建了多个资产的有效前沿，并分析了不同风险偏好下的最优投资组合配置。研
+究结果表明，通过分散投资和优化资产权重，马克维兹投资组合能够在相同风险水平下获得更高收益，或在相同收益水平下承担更低风险，充分体现了多元化投资的价值。&lt;/p>
+&lt;h1 id="引言">引言&lt;/h1>
+&lt;p>现代投资组合理论(Modern Portfolio Theory, MPT)由Harry Markowitz于1952年提出，是金融学领域的重要突破。该
+理论通过数学模型证明了投资者可以通过资产组合的选择，在风险和收益之间找到最佳平衡点，实现投资组合的最优化。本
+文将通过R语言实现马克维兹投资组合理论的核心思想，并通过实证分析验证其有效性。&lt;/p>
+&lt;h2 id="理论背景">理论背景&lt;/h2>
+&lt;p>马克维兹投资组合理论的核心假设是投资者是风险厌恶的，他们在追求最大收益的同时也希望最小化风险。该
+理论通过以下几个关键概念来实现投资组合的优化：&lt;/p>
+&lt;ol>
+&lt;li>&lt;strong>风险与收益的权衡&lt;/strong>：投资组合的预期收益是各资产预期收益的加权平均，而风险则由资产间的协方差决定。&lt;/li>
+&lt;li>&lt;strong>有效前沿&lt;/strong>：在给定风险水平下能够提供最高预期收益的投资组合集合，或者在给定预期收益下风险最小的投资组合集合。&lt;/li>
+&lt;li>&lt;strong>最优投资组合&lt;/strong>：结合投资者的风险偏好，在有效前沿上选择最适合的投资组合。&lt;/li>
+&lt;/ol>
+&lt;h1 id="数据获取与预处理">数据获取与预处理&lt;/h1>
+&lt;h2 id="加载必要的r包">加载必要的R包&lt;/h2>
+&lt;p>首先加载本文分析所需的R包：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-r" data-lang="r">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 加载必要的R包&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(quantmod) &lt;span style="color:#75715e"># 获取金融数据&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(PortfolioAnalytics) &lt;span style="color:#75715e"># 投资组合分析&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(PerformanceAnalytics) &lt;span style="color:#75715e"># 绩效分析&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(ggplot2) &lt;span style="color:#75715e"># 数据可视化&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(dplyr) &lt;span style="color:#75715e"># 数据处理&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(scales) &lt;span style="color:#75715e"># 数据转换&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="数据获取">数据获取&lt;/h2>
+&lt;p>我们将选择几只具有代表性的美国股票作为分析对象，包括科技股、金融股和消费品股，时间范围设定为过去5年：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-r" data-lang="r">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 定义股票代码&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>tickers &lt;span style="color:#f92672">&amp;lt;-&lt;/span> &lt;span style="color:#a6e22e">c&lt;/span>(&lt;span style="color:#e6db74">&amp;#34;AAPL&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;MSFT&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;JPM&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;PG&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;XOM&amp;#34;&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 设置时间范围&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>start_date &lt;span style="color:#f92672">&amp;lt;-&lt;/span> &lt;span style="color:#e6db74">&amp;#34;2018-01-01&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>end_date &lt;span style="color:#f92672">&amp;lt;-&lt;/span> &lt;span style="color:#e6db74">&amp;#34;2023-01-01&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 创建一个空列表存储股票数据&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>stock_data &lt;span style="color:#f92672">&amp;lt;-&lt;/span> &lt;span style="color:#a6e22e">list&lt;/span>()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 获取每只股票的价格数据&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">for&lt;/span>(ticker &lt;span style="color:#66d9ef">in&lt;/span> tickers) {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> stock_data[[ticker]] &lt;span style="color:#f92672">&amp;lt;-&lt;/span> &lt;span style="color:#a6e22e">getSymbols&lt;/span>(ticker, 
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> from &lt;span style="color:#f92672">=&lt;/span> start_date, 
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> to &lt;span style="color:#f92672">=&lt;/span> end_date, 
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> auto.assign &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#66d9ef">FALSE&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 查看数据结构&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">str&lt;/span>(stock_data[[1]])
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;pre tabindex="0">&lt;code>## An xts object on 2018-01-02 / 2022-12-30 containing: 
+## Data: double [1259, 6]
+## Columns: AAPL.Open, AAPL.High, AAPL.Low, AAPL.Close, AAPL.Volume ... with 1 more column
+## Index: Date [1259] (TZ: &amp;#34;UTC&amp;#34;)
+## xts Attributes:
+## $ src : chr &amp;#34;yahoo&amp;#34;
+## $ updated: POSIXct[1:1], format: &amp;#34;2025-07-02 18:09:13&amp;#34;
+&lt;/code>&lt;/pre>&lt;h2 id="数据预处理">数据预处理&lt;/h2>
+&lt;p>将获取的原始价格数据转换为日收益率，并合并为一个数据框：&lt;/p></description></item><item><title>均值回归策略有效性分析</title><link>https://rfinance.org.cn/docs/mean-reverse/</link><pubDate>Tue, 10 Jun 2025 15:36:25 +0000</pubDate><guid>https://rfinance.org.cn/docs/mean-reverse/</guid><description>&lt;h1 id="引言">引言&lt;/h1>
+&lt;p>均值回归是金融市场中的一种重要现象，指资产价格或收益率在长期内趋向于回归其历史平
+均值。基于这一理论的交易策略通常假设价格偏离其均值后会回归，因此可以通过买入低价
+资产、卖出高价资产来获利。&lt;/p>
+&lt;p>本文将通过R语言实现均值回归策略，并验证其有效性。我们将选取多只股票作为样本，优化
+策略参数，并在样本外数据上验证策略的表现。&lt;/p>
+&lt;h1 id="数据准备与分析">数据准备与分析&lt;/h1>
+&lt;p>首先加载必要的R包并获取股票数据。我们将选取几只具有代表性的美国科技股作为研究对象。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-r" data-lang="r">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 加载必要的R包&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(quantmod)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(PerformanceAnalytics)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(foreach)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(doParallel)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(ggplot2)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(dplyr)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(tidyr)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(eTTR)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(zoo)
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>接下来，我们获取多只股票的历史数据。这里选择了苹果(AAPL)、微软(MSFT)、谷歌(GOOG)、
+亚马逊(AMZN)和特斯拉(TSLA)作为样本。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-r" data-lang="r">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 设置起止日期&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>start_date &lt;span style="color:#f92672">&amp;lt;-&lt;/span> &lt;span style="color:#e6db74">&amp;#34;2018-01-01&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>end_date &lt;span style="color:#f92672">&amp;lt;-&lt;/span> &lt;span style="color:#e6db74">&amp;#34;2023-01-01&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>out_of_sample_date &lt;span style="color:#f92672">&amp;lt;-&lt;/span> &lt;span style="color:#e6db74">&amp;#34;2023-01-02&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>end_oos_date &lt;span style="color:#f92672">&amp;lt;-&lt;/span> &lt;span style="color:#e6db74">&amp;#34;2023-12-31&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 股票代码列表&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>stock_symbols &lt;span style="color:#f92672">&amp;lt;-&lt;/span> &lt;span style="color:#a6e22e">c&lt;/span>(&lt;span style="color:#e6db74">&amp;#34;AAPL&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;MSFT&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;GOOG&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;AMZN&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;TSLA&amp;#34;&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 获取股票数据&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>stock_data &lt;span style="color:#f92672">&amp;lt;-&lt;/span> &lt;span style="color:#a6e22e">list&lt;/span>()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">for&lt;/span> (symbol &lt;span style="color:#66d9ef">in&lt;/span> stock_symbols) {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> data_raw &lt;span style="color:#f92672">&amp;lt;-&lt;/span> &lt;span style="color:#a6e22e">getSymbols&lt;/span>(symbol, from &lt;span style="color:#f92672">=&lt;/span> start_date, to &lt;span style="color:#f92672">=&lt;/span> end_date, auto.assign &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#66d9ef">FALSE&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">colnames&lt;/span>(data_raw) &lt;span style="color:#f92672">&amp;lt;-&lt;/span> &lt;span style="color:#a6e22e">c&lt;/span>(&lt;span style="color:#e6db74">&amp;#34;Open&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;High&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;Low&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;Close&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;Volume&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;Adjusted&amp;#34;&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> stock_data[[symbol]] &lt;span style="color:#f92672">&amp;lt;-&lt;/span> data_raw
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 获取样本外数据&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>oos_data &lt;span style="color:#f92672">&amp;lt;-&lt;/span> &lt;span style="color:#a6e22e">list&lt;/span>()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">for&lt;/span> (symbol &lt;span style="color:#66d9ef">in&lt;/span> stock_symbols) {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> data_raw &lt;span style="color:#f92672">&amp;lt;-&lt;/span> &lt;span style="color:#a6e22e">getSymbols&lt;/span>(symbol, from &lt;span style="color:#f92672">=&lt;/span> out_of_sample_date, to &lt;span style="color:#f92672">=&lt;/span> end_oos_date, auto.assign &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#66d9ef">FALSE&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">colnames&lt;/span>(data_raw) &lt;span style="color:#f92672">&amp;lt;-&lt;/span> &lt;span style="color:#a6e22e">c&lt;/span>(&lt;span style="color:#e6db74">&amp;#34;Open&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;High&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;Low&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;Close&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;Volume&amp;#34;&lt;/span>, &lt;span style="color:#e6db74">&amp;#34;Adjusted&amp;#34;&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> oos_data[[symbol]] &lt;span style="color:#f92672">&amp;lt;-&lt;/span> data_raw
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>让我们可视化这些股票的价格走势，以便对数据有一个直观的了解。&lt;/p></description></item></channel></rss>

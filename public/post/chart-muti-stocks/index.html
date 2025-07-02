@@ -1,0 +1,217 @@
+<!doctype html><html class=no-js lang=en><head><meta charset=UTF-8><meta name=viewport content="width=device-width,initial-scale=1"><title>R语言与多股票波动性及相关性的可视化 - R-Finance中国</title><script>(function(e,t){e[t]=e[t].replace("no-js","js")})(document.documentElement,"className")</script><meta name=description content><meta property="og:url" content="https://rfinance.org.cn/post/chart-muti-stocks/"><meta property="og:site_name" content="R-Finance中国"><meta property="og:title" content="R语言与多股票波动性及相关性的可视化"><meta property="og:description" content='前言 在量化投资建模过程之前，有时候，我们需要对多只股票的价格走势、收益率序列、波动率等进行分析。下面给出使用 R 语言比较多只股票价格走势的完整解决方案。方案涵盖数据获取、清洗、可视化及基础分析全流程：
+数据获取 安装与加载工具包 # 安装必要包（首次运行需取消注释） # install.packages(c("quantmod", # "tidyverse", # "ggplot2", # "zoo", # "corrplot")) library(quantmod) # 获取金融数据 library(tidyverse) # 数据处理 library(ggplot2) # 可视化 library(zoo) # 时间序列处理 定义股票代码与时间范围 # 股票代码列表（支持多市场，如A股需加 .SS/.SZ） # 苹果、谷歌、微软、英伟达 stocks <- c("AAPL", "GOOGL", "MSFT", "NVDA") # 时间范围 start_date <- "2023-01-01" end_date <- Sys.Date() # 获取当前日期 批量获取股票数据 # 获取数据 getSymbols(stocks, src = "yahoo", from = start_date, to = end_date) ## [1] "AAPL" "GOOGL" "MSFT" "NVDA" # 处理数据 stock_data <- lapply(stocks, function(x) { data <- as_tibble(get(x)) %>% mutate(Date = index(get(x))) %>% rename_with(~ gsub(paste0("^", x, "\\."), "", .x)) %>% select(Date, Close) %>% mutate(symbol = x) %>% # 添加股票代码列 rename(price = Close) # 重命名收盘价列 }) %>% bind_rows() # 查看结果 head(stock_data) ## # A tibble: 6 × 3 ## Date price symbol ## <date> <dbl> <chr> ## 1 2023-01-03 125. AAPL ## 2 2023-01-04 126. AAPL ## 3 2023-01-05 125. AAPL ## 4 2023-01-06 130. AAPL ## 5 2023-01-09 130. AAPL ## 6 2023-01-10 131. AAPL 数据清洗 处理缺失值 library(dplyr) # 检查缺失值 missing_values <- stock_data %>% group_by(symbol) %>% summarise(missing = sum(is.na(price))) # 填充缺失值（使用前向填充） stock_data <- stock_data %>% group_by(symbol) %>% mutate(price = na.locf(price)) 对齐时间序列 library(dplyr) # 生成完整日期序列 full_dates <- tibble(Date = seq(as.Date(start_date), as.Date(end_date), by = "day")) # 左连接填充所有日期 stock_data <- full_dates %>% left_join(stock_data, by = "Date") %>% group_by(symbol) %>% fill(price, .direction = "downup") %>% na.omit() 价格走势可视化 基础折线图 library(dplyr) ggplot(stock_data, aes(x = Date, y = price, color = symbol)) + geom_line(linewidth = 0.8) + labs(title = "多只股票价格走势对比", x = "日期", y = "收盘价", color = "股票代码") + theme_minimal() + theme(legend.position = "top") + scale_color_manual(values = c("AAPL" = "red", "GOOGL" = "blue", "MSFT" = "green", "NVDA" = "purple") ) 对数收益率对比 library(dplyr) # 计算对数收益率 return_data <- stock_data %>% group_by(symbol) %>% mutate(log_return = log(price) - log(lag(price))) %>% na.omit() # 绘制收益率曲线 ggplot(return_data, aes(x = Date, y = log_return, color = symbol)) + geom_line(alpha = 0.7) + labs(title = "对数收益率对比", x = "日期", y = "对数收益率", color = "股票代码") + theme_minimal() + theme(legend.position = "top") # 图例放底部 绘制对数收益率密度图：'><meta property="og:locale" content="zh_CN"><meta property="og:type" content="article"><meta property="article:section" content="post"><meta property="article:published_time" content="2025-06-10T15:36:25+00:00"><meta property="article:modified_time" content="2025-06-10T15:36:25+00:00"><meta property="article:tag" content="相关性"><meta property="article:tag" content="股票"><meta property="article:tag" content="波动性"><meta property="article:tag" content="R"><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=dns-prefetch href=//fonts.googleapis.com><link rel=dns-prefetch href=//fonts.gstatic.com><link rel=stylesheet href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700"><link rel=stylesheet href=/css/style.css><link rel="shortcut icon" href=/favicon.ico></head><body class=body><div class="container container--outer"><header class=header><div class="container header__container"><div class=logo><a class=logo__link href=/ title=R-Finance中国 rel=home><div class="logo__item logo__text"><div class=logo__title>R-Finance中国</div><div class=logo__tagline>R语言与金融深度融合的堡垒站点</div></div></a></div><nav class=menu><button class=menu__btn aria-haspopup=true aria-expanded=false tabindex=0>
+<span class=menu__btn-title tabindex=-1>Menu</span></button><ul class=menu__list><li class=menu__item><a class=menu__link href=/conference/><span class=menu__text>会议</span></a></li><li class=menu__item><a class=menu__link href=/salon/><span class=menu__text>沙龙</span></a></li><li class=menu__item><a class=menu__link href=/bootcamp/><span class=menu__text>训练坊</span></a></li><li class=menu__item><a class=menu__link href=/media/><span class=menu__text>媒体矩阵</span></a></li><li class=menu__item><a class=menu__link href=/about/><span class=menu__text>关于本站</span></a></li></ul></nav></div></header><div class="wrapper flex"><div class=primary><main class=main role=main><article class=post><header class=post__header><h1 class=post__title>R语言与多股票波动性及相关性的可视化</h1><div class="post__meta meta"><div class="meta__item-datetime meta__item"><svg class="meta__icon icon icon-time" width="16" height="14" viewBox="0 0 30 28"><path d="M15 0a14 14 0 110 28 1 1 0 010-28m0 3a3 3 0 100 22 3 3 0 000-22m1 4h-2v8.4l6.8 4.4L22 18l-6-3.8z"/></svg><time class=meta__text datetime=2025-06-10T15:36:25Z>June 10, 2025</time></div><div class="meta__item-categories meta__item"><svg class="meta__icon icon icon-category" width="16" height="16" viewBox="0 0 16 16"><path d="m7 2 1 2h8v11H0V2z"/></svg><span class=meta__text><a class=meta__link href=/categories/%E9%87%8F%E5%8C%96%E6%8A%95%E8%B5%84/ rel=category>量化投资</a></span></div></div></header><div class="content post__content clearfix"><h1 id=前言>前言</h1><p>在量化投资建模过程之前，有时候，我们需要对多只股票的价格走势、收益率序列、波动率等进行分析。下面给出使用 R 语言比较多只股票价格走势的完整解决方案。方案涵盖数据获取、清洗、可视化及基础分析全流程：</p><h1 id=数据获取>数据获取</h1><h2 id=安装与加载工具包>安装与加载工具包</h2><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#75715e># 安装必要包（首次运行需取消注释）</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># install.packages(c(&#34;quantmod&#34;, </span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#                    &#34;tidyverse&#34;, </span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#                    &#34;ggplot2&#34;, </span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#                    &#34;zoo&#34;, </span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#                    &#34;corrplot&#34;))</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>library</span>(quantmod)   <span style=color:#75715e># 获取金融数据</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>library</span>(tidyverse)  <span style=color:#75715e># 数据处理</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>library</span>(ggplot2)    <span style=color:#75715e># 可视化</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>library</span>(zoo)        <span style=color:#75715e># 时间序列处理</span>
+</span></span></code></pre></div><h2 id=定义股票代码与时间范围>定义股票代码与时间范围</h2><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#75715e># 股票代码列表（支持多市场，如A股需加 .SS/.SZ）</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 苹果、谷歌、微软、英伟达</span>
+</span></span><span style=display:flex><span>stocks <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>c</span>(<span style=color:#e6db74>&#34;AAPL&#34;</span>, <span style=color:#e6db74>&#34;GOOGL&#34;</span>, <span style=color:#e6db74>&#34;MSFT&#34;</span>, <span style=color:#e6db74>&#34;NVDA&#34;</span>)  
+</span></span><span style=display:flex><span><span style=color:#75715e># 时间范围</span>
+</span></span><span style=display:flex><span>start_date <span style=color:#f92672>&lt;-</span> <span style=color:#e6db74>&#34;2023-01-01&#34;</span>
+</span></span><span style=display:flex><span>end_date <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>Sys.Date</span>()  <span style=color:#75715e># 获取当前日期</span>
+</span></span></code></pre></div><h2 id=批量获取股票数据>批量获取股票数据</h2><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#75715e># 获取数据</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>getSymbols</span>(stocks, 
+</span></span><span style=display:flex><span>           src <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;yahoo&#34;</span>, 
+</span></span><span style=display:flex><span>           from <span style=color:#f92672>=</span> start_date, 
+</span></span><span style=display:flex><span>           to <span style=color:#f92672>=</span> end_date)
+</span></span></code></pre></div><pre tabindex=0><code>## [1] &#34;AAPL&#34;  &#34;GOOGL&#34; &#34;MSFT&#34;  &#34;NVDA&#34;
+</code></pre><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#75715e># 处理数据</span>
+</span></span><span style=display:flex><span>stock_data <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>lapply</span>(stocks, <span style=color:#66d9ef>function</span>(x) {
+</span></span><span style=display:flex><span>  data <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>as_tibble</span>(<span style=color:#a6e22e>get</span>(x)) <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>mutate</span>(Date <span style=color:#f92672>=</span> <span style=color:#a6e22e>index</span>(<span style=color:#a6e22e>get</span>(x))) <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>rename_with</span>(<span style=color:#f92672>~</span> <span style=color:#a6e22e>gsub</span>(<span style=color:#a6e22e>paste0</span>(<span style=color:#e6db74>&#34;^&#34;</span>, x, <span style=color:#e6db74>&#34;\\.&#34;</span>), <span style=color:#e6db74>&#34;&#34;</span>, .x)) <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>select</span>(Date, Close) <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>mutate</span>(symbol <span style=color:#f92672>=</span> x) <span style=color:#f92672>%&gt;%</span>  <span style=color:#75715e># 添加股票代码列</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>rename</span>(price <span style=color:#f92672>=</span> Close)   <span style=color:#75715e># 重命名收盘价列</span>
+</span></span><span style=display:flex><span>}) <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>bind_rows</span>()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 查看结果</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>head</span>(stock_data)
+</span></span></code></pre></div><pre tabindex=0><code>## # A tibble: 6 × 3
+##   Date       price symbol
+##   &lt;date&gt;     &lt;dbl&gt; &lt;chr&gt; 
+## 1 2023-01-03  125. AAPL  
+## 2 2023-01-04  126. AAPL  
+## 3 2023-01-05  125. AAPL  
+## 4 2023-01-06  130. AAPL  
+## 5 2023-01-09  130. AAPL  
+## 6 2023-01-10  131. AAPL
+</code></pre><h1 id=数据清洗>数据清洗</h1><h2 id=处理缺失值>处理缺失值</h2><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#a6e22e>library</span>(dplyr)
+</span></span><span style=display:flex><span><span style=color:#75715e># 检查缺失值</span>
+</span></span><span style=display:flex><span>missing_values <span style=color:#f92672>&lt;-</span> stock_data <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>group_by</span>(symbol) <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>summarise</span>(missing <span style=color:#f92672>=</span> <span style=color:#a6e22e>sum</span>(<span style=color:#a6e22e>is.na</span>(price)))
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 填充缺失值（使用前向填充）</span>
+</span></span><span style=display:flex><span>stock_data <span style=color:#f92672>&lt;-</span> stock_data <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>group_by</span>(symbol) <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>mutate</span>(price <span style=color:#f92672>=</span> <span style=color:#a6e22e>na.locf</span>(price))
+</span></span></code></pre></div><h2 id=对齐时间序列>对齐时间序列</h2><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#a6e22e>library</span>(dplyr)
+</span></span><span style=display:flex><span><span style=color:#75715e># 生成完整日期序列</span>
+</span></span><span style=display:flex><span>full_dates <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>tibble</span>(Date <span style=color:#f92672>=</span> <span style=color:#a6e22e>seq</span>(<span style=color:#a6e22e>as.Date</span>(start_date), 
+</span></span><span style=display:flex><span>                                <span style=color:#a6e22e>as.Date</span>(end_date), 
+</span></span><span style=display:flex><span>                                by <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;day&#34;</span>))
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 左连接填充所有日期</span>
+</span></span><span style=display:flex><span>stock_data <span style=color:#f92672>&lt;-</span> full_dates <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>left_join</span>(stock_data, by <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Date&#34;</span>) <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>group_by</span>(symbol) <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>fill</span>(price, .direction <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;downup&#34;</span>) <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>na.omit</span>()
+</span></span></code></pre></div><h1 id=价格走势可视化>价格走势可视化</h1><h2 id=基础折线图>基础折线图</h2><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#a6e22e>library</span>(dplyr)
+</span></span><span style=display:flex><span><span style=color:#a6e22e>ggplot</span>(stock_data, <span style=color:#a6e22e>aes</span>(x <span style=color:#f92672>=</span> Date, y <span style=color:#f92672>=</span> price, color <span style=color:#f92672>=</span> symbol)) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>geom_line</span>(linewidth <span style=color:#f92672>=</span> <span style=color:#ae81ff>0.8</span>) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>labs</span>(title <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;多只股票价格走势对比&#34;</span>,
+</span></span><span style=display:flex><span>       x <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;日期&#34;</span>,
+</span></span><span style=display:flex><span>       y <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;收盘价&#34;</span>,
+</span></span><span style=display:flex><span>       color <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;股票代码&#34;</span>) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>theme_minimal</span>() <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>theme</span>(legend.position <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;top&#34;</span>) <span style=color:#f92672>+</span>  
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>scale_color_manual</span>(values <span style=color:#f92672>=</span> <span style=color:#a6e22e>c</span>(<span style=color:#e6db74>&#34;AAPL&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;red&#34;</span>, 
+</span></span><span style=display:flex><span>                                <span style=color:#e6db74>&#34;GOOGL&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;blue&#34;</span>, 
+</span></span><span style=display:flex><span>                                <span style=color:#e6db74>&#34;MSFT&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;green&#34;</span>, 
+</span></span><span style=display:flex><span>                                <span style=color:#e6db74>&#34;NVDA&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;purple&#34;</span>)
+</span></span><span style=display:flex><span>                     )
+</span></span></code></pre></div><img src=/post/chart-muti-stocks_files/figure-html/lineChart-1.png width=90% style=display:block;margin:auto><h2 id=对数收益率对比>对数收益率对比</h2><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#a6e22e>library</span>(dplyr)
+</span></span><span style=display:flex><span><span style=color:#75715e># 计算对数收益率</span>
+</span></span><span style=display:flex><span>return_data <span style=color:#f92672>&lt;-</span> stock_data <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>group_by</span>(symbol) <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>mutate</span>(log_return <span style=color:#f92672>=</span> <span style=color:#a6e22e>log</span>(price) <span style=color:#f92672>-</span> <span style=color:#a6e22e>log</span>(<span style=color:#a6e22e>lag</span>(price))) <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>na.omit</span>()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 绘制收益率曲线</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>ggplot</span>(return_data, 
+</span></span><span style=display:flex><span>       <span style=color:#a6e22e>aes</span>(x <span style=color:#f92672>=</span> Date, y <span style=color:#f92672>=</span> log_return, color <span style=color:#f92672>=</span> symbol)) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>geom_line</span>(alpha <span style=color:#f92672>=</span> <span style=color:#ae81ff>0.7</span>) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>labs</span>(title <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;对数收益率对比&#34;</span>,
+</span></span><span style=display:flex><span>       x <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;日期&#34;</span>,
+</span></span><span style=display:flex><span>       y <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;对数收益率&#34;</span>,
+</span></span><span style=display:flex><span>       color <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;股票代码&#34;</span>) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>theme_minimal</span>() <span style=color:#f92672>+</span> 
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>theme</span>(legend.position <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;top&#34;</span>) <span style=color:#75715e># 图例放底部</span>
+</span></span></code></pre></div><img src=/post/chart-muti-stocks_files/figure-html/logReturn-1.png width=90% style=display:block;margin:auto><p>绘制对数收益率密度图：</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#a6e22e>library</span>(dplyr)
+</span></span><span style=display:flex><span><span style=color:#a6e22e>ggplot</span>(return_data, <span style=color:#a6e22e>aes</span>(x <span style=color:#f92672>=</span> log_return, fill <span style=color:#f92672>=</span> symbol)) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>geom_density</span>(alpha <span style=color:#f92672>=</span> <span style=color:#ae81ff>0.4</span>) <span style=color:#f92672>+</span>  <span style=color:#75715e># 半透明填充</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>facet_wrap</span>(<span style=color:#f92672>~</span> symbol, ncol <span style=color:#f92672>=</span> <span style=color:#ae81ff>2</span>) <span style=color:#f92672>+</span>  <span style=color:#75715e># 按股票分面显示</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>labs</span>(title <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;对数收益率密度分布对比&#34;</span>,
+</span></span><span style=display:flex><span>       x <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;对数收益率&#34;</span>,
+</span></span><span style=display:flex><span>       y <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;密度&#34;</span>) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>theme_minimal</span>() <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>theme</span>(legend.position <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;top&#34;</span>)  <span style=color:#75715e># 图例放底部</span>
+</span></span></code></pre></div><img src=/post/chart-muti-stocks_files/figure-html/density-1.png width=90% style=display:block;margin:auto><p>将密度图叠加以便于比较：</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#a6e22e>library</span>(dplyr)
+</span></span><span style=display:flex><span><span style=color:#75715e># 对数收益率密度图（叠加显示）</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>ggplot</span>(return_data, <span style=color:#a6e22e>aes</span>(x <span style=color:#f92672>=</span> log_return, fill <span style=color:#f92672>=</span> symbol, color <span style=color:#f92672>=</span> symbol)) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>geom_density</span>(alpha <span style=color:#f92672>=</span> <span style=color:#ae81ff>0.3</span>, linewidth <span style=color:#f92672>=</span> <span style=color:#ae81ff>1</span>) <span style=color:#f92672>+</span>  
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>scale_fill_manual</span>(values <span style=color:#f92672>=</span> <span style=color:#a6e22e>c</span>(<span style=color:#e6db74>&#34;AAPL&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;#FF5252&#34;</span>, 
+</span></span><span style=display:flex><span>                               <span style=color:#e6db74>&#34;GOOGL&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;#4285F4&#34;</span>, 
+</span></span><span style=display:flex><span>                               <span style=color:#e6db74>&#34;MSFT&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;#00A4EF&#34;</span>, 
+</span></span><span style=display:flex><span>                               <span style=color:#e6db74>&#34;NVDA&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;#7FBA00&#34;</span>)) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>scale_color_manual</span>(values <span style=color:#f92672>=</span> <span style=color:#a6e22e>c</span>(<span style=color:#e6db74>&#34;AAPL&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;#D50000&#34;</span>, 
+</span></span><span style=display:flex><span>                                <span style=color:#e6db74>&#34;GOOGL&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;#0D47A1&#34;</span>, 
+</span></span><span style=display:flex><span>                                <span style=color:#e6db74>&#34;MSFT&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;#005A8E&#34;</span>, 
+</span></span><span style=display:flex><span>                                <span style=color:#e6db74>&#34;NVDA&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;#527D00&#34;</span>)) 
+</span></span></code></pre></div><img src=/post/chart-muti-stocks_files/figure-html/densityOverlap-1.png width=90% style=display:block;margin:auto><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span>  <span style=color:#a6e22e>labs</span>(title <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;对数收益率密度分布对比&#34;</span>,
+</span></span><span style=display:flex><span>       x <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;对数收益率&#34;</span>,
+</span></span><span style=display:flex><span>       y <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;密度&#34;</span>,
+</span></span><span style=display:flex><span>       fill <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;股票代码&#34;</span>,
+</span></span><span style=display:flex><span>       color <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;股票代码&#34;</span>) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>theme_minimal</span>() <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>theme</span>(
+</span></span><span style=display:flex><span>    legend.position <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;top&#34;</span>,
+</span></span><span style=display:flex><span>    legend.box <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;horizontal&#34;</span>,
+</span></span><span style=display:flex><span>    plot.title <span style=color:#f92672>=</span> <span style=color:#a6e22e>element_text</span>(hjust <span style=color:#f92672>=</span> <span style=color:#ae81ff>0.5</span>, size <span style=color:#f92672>=</span> <span style=color:#ae81ff>14</span>, face <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;bold&#34;</span>),
+</span></span><span style=display:flex><span>    axis.title <span style=color:#f92672>=</span> <span style=color:#a6e22e>element_text</span>(size <span style=color:#f92672>=</span> <span style=color:#ae81ff>12</span>),
+</span></span><span style=display:flex><span>    axis.text <span style=color:#f92672>=</span> <span style=color:#a6e22e>element_text</span>(size <span style=color:#f92672>=</span> <span style=color:#ae81ff>10</span>)
+</span></span><span style=display:flex><span>  )
+</span></span></code></pre></div><pre tabindex=0><code>## NULL
+</code></pre><p>还可以绘制箱线图：</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#a6e22e>library</span>(dplyr)
+</span></span><span style=display:flex><span><span style=color:#75715e># 箱线图对比</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>ggplot</span>(return_data, <span style=color:#a6e22e>aes</span>(x <span style=color:#f92672>=</span> symbol, y <span style=color:#f92672>=</span> log_return, fill <span style=color:#f92672>=</span> symbol)) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>geom_boxplot</span>() <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>labs</span>(title <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;对数收益率箱线图对比&#34;</span>,
+</span></span><span style=display:flex><span>       x <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;股票代码&#34;</span>,
+</span></span><span style=display:flex><span>       y <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;对数收益率&#34;</span>) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>theme_minimal</span>() <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>theme</span>(legend.position <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;top&#34;</span>) 
+</span></span></code></pre></div><img src=/post/chart-muti-stocks_files/figure-html/boxplot-1.png width=90% style=display:block;margin:auto><h1 id=股票数据特征的统计分析>股票数据特征的统计分析</h1><h2 id=计算波动率>计算波动率</h2><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#a6e22e>library</span>(dplyr)
+</span></span><span style=display:flex><span>volatility <span style=color:#f92672>&lt;-</span> return_data <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>group_by</span>(symbol) <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>summarise</span>(volatility <span style=color:#f92672>=</span> <span style=color:#a6e22e>sd</span>(log_return, na.rm <span style=color:#f92672>=</span> <span style=color:#66d9ef>TRUE</span>)) <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>arrange</span>(<span style=color:#a6e22e>desc</span>(volatility))
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>print</span>(volatility)
+</span></span></code></pre></div><pre tabindex=0><code>## # A tibble: 4 × 2
+##   symbol volatility
+##   &lt;chr&gt;       &lt;dbl&gt;
+## 1 NVDA       0.0330
+## 2 GOOGL      0.0193
+## 3 AAPL       0.0165
+## 4 MSFT       0.0152
+</code></pre><h2 id=相关性分析>相关性分析</h2><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#a6e22e>library</span>(dplyr)
+</span></span><span style=display:flex><span><span style=color:#75715e># 转换为宽格式</span>
+</span></span><span style=display:flex><span>price_wide <span style=color:#f92672>&lt;-</span> return_data <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>select</span>(Date, symbol, price) <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>pivot_wider</span>(names_from <span style=color:#f92672>=</span> symbol, values_from <span style=color:#f92672>=</span> price) <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>column_to_rownames</span>(var <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Date&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 计算相关系数矩阵</span>
+</span></span><span style=display:flex><span>cor_matrix <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>cor</span>(price_wide)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 可视化相关系数</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>library</span>(corrplot)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 绘制相关性矩阵（暖色调）</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>corrplot</span>(cor_matrix, 
+</span></span><span style=display:flex><span>         method <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;color&#34;</span>,      <span style=color:#75715e># 颜色填充</span>
+</span></span><span style=display:flex><span>         type <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;upper&#34;</span>,        <span style=color:#75715e># 只显示上三角</span>
+</span></span><span style=display:flex><span>         tl.col <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;black&#34;</span>,      <span style=color:#75715e># 标签颜色</span>
+</span></span><span style=display:flex><span>         tl.srt <span style=color:#f92672>=</span> <span style=color:#ae81ff>45</span>,           <span style=color:#75715e># 标签倾斜角度</span>
+</span></span><span style=display:flex><span>         title <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;股票价格相关性矩阵&#34;</span>, 
+</span></span><span style=display:flex><span>         mar <span style=color:#f92672>=</span> <span style=color:#a6e22e>c</span>(<span style=color:#ae81ff>0</span>,<span style=color:#ae81ff>0</span>,<span style=color:#ae81ff>1</span>,<span style=color:#ae81ff>0</span>),      <span style=color:#75715e># 边距调整</span>
+</span></span><span style=display:flex><span>         addCoef.col <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;black&#34;</span>, <span style=color:#75715e># 添加相关系数数值</span>
+</span></span><span style=display:flex><span>         number.cex <span style=color:#f92672>=</span> <span style=color:#ae81ff>0.7</span>,      <span style=color:#75715e># 系数文字大小</span>
+</span></span><span style=display:flex><span>         diag <span style=color:#f92672>=</span> <span style=color:#66d9ef>FALSE</span>)          <span style=color:#75715e># 不显示对角线</span>
+</span></span></code></pre></div><img src=/post/chart-muti-stocks_files/figure-html/wideDat-1.png width=90% style=display:block;margin:auto><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#75715e># 计算相关系数矩阵</span>
+</span></span><span style=display:flex><span>cor_matrix <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>cor</span>(price_wide)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 使用ggcorrplot绘制ggplot2风格的相关性矩阵（暖色调）</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>library</span>(ggcorrplot)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>ggcorrplot</span>(
+</span></span><span style=display:flex><span>  cor_matrix,
+</span></span><span style=display:flex><span>  method <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;square&#34;</span>,          <span style=color:#75715e># 颜色填充</span>
+</span></span><span style=display:flex><span>  type <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;upper&#34;</span>,            <span style=color:#75715e># 只显示上三角</span>
+</span></span><span style=display:flex><span>  colors <span style=color:#f92672>=</span> <span style=color:#a6e22e>c</span>(<span style=color:#e6db74>&#34;#FF4500&#34;</span>, <span style=color:#e6db74>&#34;#FFFFFF&#34;</span>, <span style=color:#e6db74>&#34;#1E90FF&#34;</span>),  <span style=color:#75715e># 自定义颜色（红-白-蓝）</span>
+</span></span><span style=display:flex><span>  lab <span style=color:#f92672>=</span> <span style=color:#66d9ef>TRUE</span>,                <span style=color:#75715e># 显示相关系数</span>
+</span></span><span style=display:flex><span>  lab_size <span style=color:#f92672>=</span> <span style=color:#ae81ff>3.5</span>,            <span style=color:#75715e># 系数文字大小</span>
+</span></span><span style=display:flex><span>  title <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;股票价格相关性矩阵&#34;</span>,
+</span></span><span style=display:flex><span>  ggtheme <span style=color:#f92672>=</span> <span style=color:#a6e22e>theme_minimal</span>(), <span style=color:#75715e># ggplot2主题</span>
+</span></span><span style=display:flex><span>  show.legend <span style=color:#f92672>=</span> <span style=color:#66d9ef>TRUE</span>,        <span style=color:#75715e># 显示图例</span>
+</span></span><span style=display:flex><span>  legend.title <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;相关性&#34;</span>,
+</span></span><span style=display:flex><span>  tl.col <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;black&#34;</span>,          <span style=color:#75715e># 标签颜色</span>
+</span></span><span style=display:flex><span>  tl.srt <span style=color:#f92672>=</span> <span style=color:#ae81ff>45</span>,               <span style=color:#75715e># 标签倾斜角度</span>
+</span></span><span style=display:flex><span>  digits <span style=color:#f92672>=</span> <span style=color:#ae81ff>2</span>                 <span style=color:#75715e># 保留两位小数</span>
+</span></span><span style=display:flex><span>) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>theme</span>(
+</span></span><span style=display:flex><span>    plot.title <span style=color:#f92672>=</span> <span style=color:#a6e22e>element_text</span>(hjust <span style=color:#f92672>=</span> <span style=color:#ae81ff>0.5</span>, size <span style=color:#f92672>=</span> <span style=color:#ae81ff>14</span>, face <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;bold&#34;</span>),
+</span></span><span style=display:flex><span>    axis.text <span style=color:#f92672>=</span> <span style=color:#a6e22e>element_text</span>(size <span style=color:#f92672>=</span> <span style=color:#ae81ff>10</span>),
+</span></span><span style=display:flex><span>    legend.text <span style=color:#f92672>=</span> <span style=color:#a6e22e>element_text</span>(size <span style=color:#f92672>=</span> <span style=color:#ae81ff>9</span>),
+</span></span><span style=display:flex><span>    legend.title <span style=color:#f92672>=</span> <span style=color:#a6e22e>element_text</span>(size <span style=color:#f92672>=</span> <span style=color:#ae81ff>10</span>, face <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;bold&#34;</span>)
+</span></span><span style=display:flex><span>  )
+</span></span></code></pre></div><img src=/post/chart-muti-stocks_files/figure-html/wideDat-2.png width=90% style=display:block;margin:auto><h1 id=导出数据>导出数据</h1><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#75715e># 导出为 CSV</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># write_csv(stock_data, &#34;stock_prices.csv&#34;)</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 导出为 Excel（需安装 writexl 包）</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># install.packages(&#34;writexl&#34;)</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># write_xlsx(stock_data, &#34;stock_prices.xlsx&#34;)</span>
+</span></span></code></pre></div><h1 id=小结>小结</h1><p>本文的数据来源为雅虎财经（Yahoo Finance），若需更专业数据，可考虑 WRDS 数据库（需机构订阅）。</p><p>在 R 软件包的选择上，我们使用了 quantmod 包以快速获取数据，但该软件包返回的是 xts 格式，后续计算过程中需转换为 tibble 。</p><p>数据处理过程借助于 tidyquant 包，该软件包可以返回整洁格式的数据，与 tidyverse 兼容性更好。</p><p>缺失值处理方面，前向填充（na.locf）适用于短期缺失，多重插补（mice包）可处理复杂缺失模式。可视化优化方面，可以使用scale_color_manual自定义颜色。此外，可以添加geom_smooth拟合趋势线（如method = &ldquo;loess&rdquo;）。</p><p>通过以上步骤，我们可以高效地获取、清洗并可视化多只股票的价格走势，结合波动率和相关性分析，为投资决策提供数据支持。</p></div><footer class=post__footer><div class="post__tags tags clearfix"><svg class="tags__badge icon icon-tag" width="16" height="16" viewBox="0 0 32 32"><path d="M4 0h8s2 0 4 2l15 15s2 2 0 4L21 31s-2 2-4 0L2 16s-2-2-2-4V3s0-3 4-3m3 10a3 3 0 000-6 3 3 0 000 6"/></svg><ul class=tags__list><li class=tags__item><a class="tags__link btn" href=/tags/%E7%9B%B8%E5%85%B3%E6%80%A7/ rel=tag>相关性</a></li><li class=tags__item><a class="tags__link btn" href=/tags/%E8%82%A1%E7%A5%A8/ rel=tag>股票</a></li><li class=tags__item><a class="tags__link btn" href=/tags/%E6%B3%A2%E5%8A%A8%E6%80%A7/ rel=tag>波动性</a></li><li class=tags__item><a class="tags__link btn" href=/tags/r/ rel=tag>R</a></li></ul></div></footer></article><script src=https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js async></script><script>window.MathJax={tex:{inlineMath:[["$","$"],["\\(","\\)"]],displayMath:[["$$","$$"],["\\[","\\]"]],processEscapes:!0,tags:"ams"},svg:{fontCache:"global"}}</script></main></div></div><footer class=footer><div class="container footer__container flex"><div class=footer__copyright>&copy; 2025 R-Finance中国.
+<span class=footer__copyright-credits>Generated with <a href=https://gohugo.io/ rel="nofollow noopener" target=_blank>Hugo</a> and <a href=https://github.com/Vimux/Mainroad/ rel="nofollow noopener" target=_blank>Mainroad</a> theme.</span></div></div></footer></div><script async defer src=/js/menu.js></script><script src=https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js async></script><script>window.MathJax={tex:{inlineMath:[["$","$"],["\\(","\\)"]],displayMath:[["$$","$$"],["\\[","\\]"]],processEscapes:!0,tags:"ams"},svg:{fontCache:"global"}}</script></body></html>

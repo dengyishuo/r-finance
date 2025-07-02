@@ -1,0 +1,637 @@
+<!doctype html><html class=no-js lang=en><head><meta charset=UTF-8><meta name=viewport content="width=device-width,initial-scale=1"><title>基于动量轮动策略的有效性分析 - R-Finance中国</title><script>(function(e,t){e[t]=e[t].replace("no-js","js")})(document.documentElement,"className")</script><meta name=description content><meta property="og:url" content="https://rfinance.org.cn/post/momentum-rotation/"><meta property="og:site_name" content="R-Finance中国"><meta property="og:title" content="基于动量轮动策略的有效性分析"><meta property="og:description" content='引言 动量效应是金融市场中一种重要的现象，指过去表现较好的资产在未来短期内往往继续表现 较好，而过去表现较差的资产则继续表现较差。基于动量效应的交易策略已经被广泛研究和 应用。
+在股票市场中，大盘股和小盘股通常具有不同的风险收益特征和市场表现。本研究旨在探索 一种基于动量的轮动策略，通过比较大盘股和小盘股的相对强度，动态调整投资组合的配置， 以获取超额收益。
+我们将使用R语言实现这一策略，并通过历史数据验证其有效性。同时，我们会优化策略参数， 测试参数敏感性，并在样本外数据上验证策略的稳健性。
+数据准备与分析 首先加载必要的R包并获取股票数据。我们将选取多只大盘股和小盘股作为研究对象。
+# 加载必要的R包 library(quantmod) library(PerformanceAnalytics) library(foreach) library(doParallel) library(ggplot2) library(dplyr) library(tidyr) library(caret) library(magrittr) 接下来，我们获取股票数据。我们将选择10只大盘股和10只小盘股作为样本。大盘股选取标 普500指数成分股中市值最大的10只，小盘股选取罗素2000指数成分股中市值最小的10只。
+# 设置起止日期 start_date <- "2018-01-01" end_date <- "2023-01-01" out_of_sample_date <- "2023-01-02" end_oos_date <- "2023-12-31" # 大盘股列表 large_cap_symbols <- c("AAPL", "MSFT", "AMZN", "TSLA") # 小盘股列表 small_cap_symbols <- c("ARQT", "AVXL", "BPMC", "CELZ") # 所有股票代码 all_symbols <- c(large_cap_symbols, small_cap_symbols) # 获取股票数据 stock_data <- list() for (symbol in all_symbols) { tryCatch( { stock_data_raw <- getSymbols(symbol, from = start_date, to = end_date, auto.assign = FALSE) colnames(stock_data_raw) <- c("Open", "High", "Low", "Close", "Volume", "Adjusted") stock_data[[symbol]] <- stock_data_raw cat("Successfully downloaded", symbol, "\n") }, error = function(e) { cat("Error downloading", symbol, ":", conditionMessage(e), "\n") } ) } ## Successfully downloaded AAPL ## Successfully downloaded MSFT ## Successfully downloaded AMZN ## Successfully downloaded TSLA ## Successfully downloaded ARQT ## Successfully downloaded AVXL ## Successfully downloaded BPMC ## Successfully downloaded CELZ # 过滤掉下载失败的股票 valid_symbols <- names(stock_data) large_cap_symbols <- large_cap_symbols[large_cap_symbols %in% valid_symbols] small_cap_symbols <- small_cap_symbols[small_cap_symbols %in% valid_symbols] # 获取样本外数据 oos_data <- list() for (symbol in valid_symbols) { tryCatch( { oss_data_raw <- getSymbols(symbol, from = out_of_sample_date, to = end_oos_date, auto.assign = FALSE) colnames(oss_data_raw) <- c("Open", "High", "Low", "Close", "Volume", "Adjusted") oos_data[[symbol]] <- oss_data_raw cat("Successfully downloaded OOS data for", symbol, "\n") }, error = function(e) { cat("Error downloading OOS data for", symbol, ":", conditionMessage(e), "\n") } ) } ## Successfully downloaded OOS data for AAPL ## Successfully downloaded OOS data for MSFT ## Successfully downloaded OOS data for AMZN ## Successfully downloaded OOS data for TSLA ## Successfully downloaded OOS data for ARQT ## Successfully downloaded OOS data for AVXL ## Successfully downloaded OOS data for BPMC ## Successfully downloaded OOS data for CELZ 让我们计算并可视化大盘股和小盘股的平均价格走势，以便对数据有一个直观的了解。'><meta property="og:locale" content="zh_CN"><meta property="og:type" content="article"><meta property="article:section" content="post"><meta property="article:published_time" content="2025-06-10T15:36:25+00:00"><meta property="article:modified_time" content="2025-06-10T15:36:25+00:00"><meta property="article:tag" content="R"><meta property="article:tag" content="动量"><meta property="article:tag" content="轮动策略"><link rel=preconnect href=https://fonts.gstatic.com crossorigin><link rel=dns-prefetch href=//fonts.googleapis.com><link rel=dns-prefetch href=//fonts.gstatic.com><link rel=stylesheet href="https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700"><link rel=stylesheet href=/css/style.css><link rel="shortcut icon" href=/favicon.ico></head><body class=body><div class="container container--outer"><header class=header><div class="container header__container"><div class=logo><a class=logo__link href=/ title=R-Finance中国 rel=home><div class="logo__item logo__text"><div class=logo__title>R-Finance中国</div><div class=logo__tagline>R语言与金融深度融合的堡垒站点</div></div></a></div><nav class=menu><button class=menu__btn aria-haspopup=true aria-expanded=false tabindex=0>
+<span class=menu__btn-title tabindex=-1>Menu</span></button><ul class=menu__list><li class=menu__item><a class=menu__link href=/conference/><span class=menu__text>会议</span></a></li><li class=menu__item><a class=menu__link href=/salon/><span class=menu__text>沙龙</span></a></li><li class=menu__item><a class=menu__link href=/bootcamp/><span class=menu__text>训练坊</span></a></li><li class=menu__item><a class=menu__link href=/media/><span class=menu__text>媒体矩阵</span></a></li><li class=menu__item><a class=menu__link href=/about/><span class=menu__text>关于本站</span></a></li></ul></nav></div></header><div class="wrapper flex"><div class=primary><main class=main role=main><article class=post><header class=post__header><h1 class=post__title>基于动量轮动策略的有效性分析</h1><div class="post__meta meta"><div class="meta__item-datetime meta__item"><svg class="meta__icon icon icon-time" width="16" height="14" viewBox="0 0 30 28"><path d="M15 0a14 14 0 110 28 1 1 0 010-28m0 3a3 3 0 100 22 3 3 0 000-22m1 4h-2v8.4l6.8 4.4L22 18l-6-3.8z"/></svg><time class=meta__text datetime=2025-06-10T15:36:25Z>June 10, 2025</time></div><div class="meta__item-categories meta__item"><svg class="meta__icon icon icon-category" width="16" height="16" viewBox="0 0 16 16"><path d="m7 2 1 2h8v11H0V2z"/></svg><span class=meta__text><a class=meta__link href=/categories/%E9%87%8F%E5%8C%96%E6%8A%95%E8%B5%84/ rel=category>量化投资</a></span></div></div></header><div class="content post__content clearfix"><h1 id=引言>引言</h1><p>动量效应是金融市场中一种重要的现象，指过去表现较好的资产在未来短期内往往继续表现
+较好，而过去表现较差的资产则继续表现较差。基于动量效应的交易策略已经被广泛研究和
+应用。</p><p>在股票市场中，大盘股和小盘股通常具有不同的风险收益特征和市场表现。本研究旨在探索
+一种基于动量的轮动策略，通过比较大盘股和小盘股的相对强度，动态调整投资组合的配置，
+以获取超额收益。</p><p>我们将使用R语言实现这一策略，并通过历史数据验证其有效性。同时，我们会优化策略参数，
+测试参数敏感性，并在样本外数据上验证策略的稳健性。</p><h1 id=数据准备与分析>数据准备与分析</h1><p>首先加载必要的R包并获取股票数据。我们将选取多只大盘股和小盘股作为研究对象。</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#75715e># 加载必要的R包</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>library</span>(quantmod)
+</span></span><span style=display:flex><span><span style=color:#a6e22e>library</span>(PerformanceAnalytics)
+</span></span><span style=display:flex><span><span style=color:#a6e22e>library</span>(foreach)
+</span></span><span style=display:flex><span><span style=color:#a6e22e>library</span>(doParallel)
+</span></span><span style=display:flex><span><span style=color:#a6e22e>library</span>(ggplot2)
+</span></span><span style=display:flex><span><span style=color:#a6e22e>library</span>(dplyr)
+</span></span><span style=display:flex><span><span style=color:#a6e22e>library</span>(tidyr)
+</span></span><span style=display:flex><span><span style=color:#a6e22e>library</span>(caret)
+</span></span><span style=display:flex><span><span style=color:#a6e22e>library</span>(magrittr)
+</span></span></code></pre></div><p>接下来，我们获取股票数据。我们将选择10只大盘股和10只小盘股作为样本。大盘股选取标
+普500指数成分股中市值最大的10只，小盘股选取罗素2000指数成分股中市值最小的10只。</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#75715e># 设置起止日期</span>
+</span></span><span style=display:flex><span>start_date <span style=color:#f92672>&lt;-</span> <span style=color:#e6db74>&#34;2018-01-01&#34;</span>
+</span></span><span style=display:flex><span>end_date <span style=color:#f92672>&lt;-</span> <span style=color:#e6db74>&#34;2023-01-01&#34;</span>
+</span></span><span style=display:flex><span>out_of_sample_date <span style=color:#f92672>&lt;-</span> <span style=color:#e6db74>&#34;2023-01-02&#34;</span>
+</span></span><span style=display:flex><span>end_oos_date <span style=color:#f92672>&lt;-</span> <span style=color:#e6db74>&#34;2023-12-31&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 大盘股列表</span>
+</span></span><span style=display:flex><span>large_cap_symbols <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>c</span>(<span style=color:#e6db74>&#34;AAPL&#34;</span>, <span style=color:#e6db74>&#34;MSFT&#34;</span>, <span style=color:#e6db74>&#34;AMZN&#34;</span>, <span style=color:#e6db74>&#34;TSLA&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 小盘股列表</span>
+</span></span><span style=display:flex><span>small_cap_symbols <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>c</span>(<span style=color:#e6db74>&#34;ARQT&#34;</span>, <span style=color:#e6db74>&#34;AVXL&#34;</span>, <span style=color:#e6db74>&#34;BPMC&#34;</span>, <span style=color:#e6db74>&#34;CELZ&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 所有股票代码</span>
+</span></span><span style=display:flex><span>all_symbols <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>c</span>(large_cap_symbols, small_cap_symbols)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 获取股票数据</span>
+</span></span><span style=display:flex><span>stock_data <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>list</span>()
+</span></span><span style=display:flex><span><span style=color:#66d9ef>for</span> (symbol <span style=color:#66d9ef>in</span> all_symbols) {
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>tryCatch</span>(
+</span></span><span style=display:flex><span>    {
+</span></span><span style=display:flex><span>      stock_data_raw <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>getSymbols</span>(symbol, 
+</span></span><span style=display:flex><span>                                   from <span style=color:#f92672>=</span> start_date, 
+</span></span><span style=display:flex><span>                                   to <span style=color:#f92672>=</span> end_date, 
+</span></span><span style=display:flex><span>                                   auto.assign <span style=color:#f92672>=</span> <span style=color:#66d9ef>FALSE</span>)
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>colnames</span>(stock_data_raw) <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>c</span>(<span style=color:#e6db74>&#34;Open&#34;</span>, 
+</span></span><span style=display:flex><span>                                    <span style=color:#e6db74>&#34;High&#34;</span>, 
+</span></span><span style=display:flex><span>                                    <span style=color:#e6db74>&#34;Low&#34;</span>, 
+</span></span><span style=display:flex><span>                                    <span style=color:#e6db74>&#34;Close&#34;</span>, 
+</span></span><span style=display:flex><span>                                    <span style=color:#e6db74>&#34;Volume&#34;</span>, 
+</span></span><span style=display:flex><span>                                    <span style=color:#e6db74>&#34;Adjusted&#34;</span>)
+</span></span><span style=display:flex><span>      stock_data[[symbol]] <span style=color:#f92672>&lt;-</span> stock_data_raw
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>cat</span>(<span style=color:#e6db74>&#34;Successfully downloaded&#34;</span>, symbol, <span style=color:#e6db74>&#34;\n&#34;</span>)
+</span></span><span style=display:flex><span>    },
+</span></span><span style=display:flex><span>    error <span style=color:#f92672>=</span> <span style=color:#66d9ef>function</span>(e) {
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>cat</span>(<span style=color:#e6db74>&#34;Error downloading&#34;</span>, symbol, <span style=color:#e6db74>&#34;:&#34;</span>, <span style=color:#a6e22e>conditionMessage</span>(e), <span style=color:#e6db74>&#34;\n&#34;</span>)
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>  )
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><pre tabindex=0><code>## Successfully downloaded AAPL 
+## Successfully downloaded MSFT 
+## Successfully downloaded AMZN 
+## Successfully downloaded TSLA 
+## Successfully downloaded ARQT 
+## Successfully downloaded AVXL 
+## Successfully downloaded BPMC 
+## Successfully downloaded CELZ
+</code></pre><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#75715e># 过滤掉下载失败的股票</span>
+</span></span><span style=display:flex><span>valid_symbols <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>names</span>(stock_data)
+</span></span><span style=display:flex><span>large_cap_symbols <span style=color:#f92672>&lt;-</span> large_cap_symbols[large_cap_symbols <span style=color:#f92672>%in%</span> valid_symbols]
+</span></span><span style=display:flex><span>small_cap_symbols <span style=color:#f92672>&lt;-</span> small_cap_symbols[small_cap_symbols <span style=color:#f92672>%in%</span> valid_symbols]
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 获取样本外数据</span>
+</span></span><span style=display:flex><span>oos_data <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>list</span>()
+</span></span><span style=display:flex><span><span style=color:#66d9ef>for</span> (symbol <span style=color:#66d9ef>in</span> valid_symbols) {
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>tryCatch</span>(
+</span></span><span style=display:flex><span>    {
+</span></span><span style=display:flex><span>      oss_data_raw <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>getSymbols</span>(symbol, 
+</span></span><span style=display:flex><span>                                 from <span style=color:#f92672>=</span> out_of_sample_date, 
+</span></span><span style=display:flex><span>                                 to <span style=color:#f92672>=</span> end_oos_date, 
+</span></span><span style=display:flex><span>                                 auto.assign <span style=color:#f92672>=</span> <span style=color:#66d9ef>FALSE</span>)
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>colnames</span>(oss_data_raw) <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>c</span>(<span style=color:#e6db74>&#34;Open&#34;</span>, 
+</span></span><span style=display:flex><span>                                  <span style=color:#e6db74>&#34;High&#34;</span>, 
+</span></span><span style=display:flex><span>                                  <span style=color:#e6db74>&#34;Low&#34;</span>, 
+</span></span><span style=display:flex><span>                                  <span style=color:#e6db74>&#34;Close&#34;</span>, 
+</span></span><span style=display:flex><span>                                  <span style=color:#e6db74>&#34;Volume&#34;</span>, 
+</span></span><span style=display:flex><span>                                  <span style=color:#e6db74>&#34;Adjusted&#34;</span>)
+</span></span><span style=display:flex><span>      oos_data[[symbol]] <span style=color:#f92672>&lt;-</span> oss_data_raw
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>cat</span>(<span style=color:#e6db74>&#34;Successfully downloaded OOS data for&#34;</span>, symbol, <span style=color:#e6db74>&#34;\n&#34;</span>)
+</span></span><span style=display:flex><span>    },
+</span></span><span style=display:flex><span>    error <span style=color:#f92672>=</span> <span style=color:#66d9ef>function</span>(e) {
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>cat</span>(<span style=color:#e6db74>&#34;Error downloading OOS data for&#34;</span>, symbol, <span style=color:#e6db74>&#34;:&#34;</span>, <span style=color:#a6e22e>conditionMessage</span>(e), <span style=color:#e6db74>&#34;\n&#34;</span>)
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>  )
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><pre tabindex=0><code>## Successfully downloaded OOS data for AAPL 
+## Successfully downloaded OOS data for MSFT 
+## Successfully downloaded OOS data for AMZN 
+## Successfully downloaded OOS data for TSLA 
+## Successfully downloaded OOS data for ARQT 
+## Successfully downloaded OOS data for AVXL 
+## Successfully downloaded OOS data for BPMC 
+## Successfully downloaded OOS data for CELZ
+</code></pre><p>让我们计算并可视化大盘股和小盘股的平均价格走势，以便对数据有一个直观的了解。</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#75715e># 函数：合并多只股票的收盘价并处理缺失值</span>
+</span></span><span style=display:flex><span>merge_stock_prices <span style=color:#f92672>&lt;-</span> <span style=color:#66d9ef>function</span>(symbols, stock_data_list) {
+</span></span><span style=display:flex><span>  merged_prices <span style=color:#f92672>&lt;-</span> <span style=color:#66d9ef>NULL</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>for</span> (symbol <span style=color:#66d9ef>in</span> symbols) {
+</span></span><span style=display:flex><span>    <span style=color:#75715e># 提取单只股票的收盘价</span>
+</span></span><span style=display:flex><span>    stock_close <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>Cl</span>(stock_data_list[[symbol]])
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#75715e># 如果是第一只股票，直接赋值</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (<span style=color:#a6e22e>is.null</span>(merged_prices)) {
+</span></span><span style=display:flex><span>      merged_prices <span style=color:#f92672>&lt;-</span> stock_close
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>colnames</span>(merged_prices) <span style=color:#f92672>&lt;-</span> symbol
+</span></span><span style=display:flex><span>    } <span style=color:#66d9ef>else</span> {
+</span></span><span style=display:flex><span>      <span style=color:#75715e># 合并多只股票，自动对齐日期</span>
+</span></span><span style=display:flex><span>      merged_prices <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>merge</span>(merged_prices, stock_close)
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>colnames</span>(merged_prices)<span style=color:#a6e22e>[ncol</span>(merged_prices)] <span style=color:#f92672>&lt;-</span> symbol
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#75715e># 处理缺失值：使用前向填充和后向填充结合</span>
+</span></span><span style=display:flex><span>  merged_prices <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>na.locf</span>(merged_prices) <span style=color:#75715e># 前向填充</span>
+</span></span><span style=display:flex><span>  merged_prices <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>na.locf</span>(merged_prices, fromLast <span style=color:#f92672>=</span> <span style=color:#66d9ef>TRUE</span>) <span style=color:#75715e># 后向填充</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>return</span>(merged_prices)
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 合并大盘股和小盘股的价格数据</span>
+</span></span><span style=display:flex><span>large_cap_merged <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>merge_stock_prices</span>(large_cap_symbols, stock_data)
+</span></span><span style=display:flex><span>small_cap_merged <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>merge_stock_prices</span>(small_cap_symbols, stock_data)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 确保两个数据集具有相同的日期范围</span>
+</span></span><span style=display:flex><span>common_dates <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>intersect</span>(<span style=color:#a6e22e>index</span>(large_cap_merged), <span style=color:#a6e22e>index</span>(small_cap_merged))
+</span></span><span style=display:flex><span>large_cap_merged <span style=color:#f92672>&lt;-</span> large_cap_merged[common_dates]
+</span></span><span style=display:flex><span>small_cap_merged <span style=color:#f92672>&lt;-</span> small_cap_merged[common_dates]
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 计算平均价格</span>
+</span></span><span style=display:flex><span>large_cap_avg <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>rowMeans</span>(large_cap_merged)
+</span></span><span style=display:flex><span>small_cap_avg <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>rowMeans</span>(small_cap_merged)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 归一化价格</span>
+</span></span><span style=display:flex><span>large_cap_norm <span style=color:#f92672>&lt;-</span> large_cap_avg <span style=color:#f92672>/</span> large_cap_avg[1]
+</span></span><span style=display:flex><span>small_cap_norm <span style=color:#f92672>&lt;-</span> small_cap_avg <span style=color:#f92672>/</span> small_cap_avg[1]
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 创建绘图数据框</span>
+</span></span><span style=display:flex><span>price_data <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>data.frame</span>(
+</span></span><span style=display:flex><span>  Date <span style=color:#f92672>=</span> <span style=color:#a6e22e>as.Date</span>(<span style=color:#a6e22e>index</span>(large_cap_merged)),
+</span></span><span style=display:flex><span>  Large_Cap <span style=color:#f92672>=</span> <span style=color:#a6e22e>as.numeric</span>(large_cap_norm),
+</span></span><span style=display:flex><span>  Small_Cap <span style=color:#f92672>=</span> <span style=color:#a6e22e>as.numeric</span>(small_cap_norm)
+</span></span><span style=display:flex><span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 使用ggplot2绘制对比图</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>library</span>(ggplot2)
+</span></span><span style=display:flex><span><span style=color:#a6e22e>ggplot</span>(price_data, <span style=color:#a6e22e>aes</span>(x <span style=color:#f92672>=</span> Date)) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>geom_line</span>(<span style=color:#a6e22e>aes</span>(y <span style=color:#f92672>=</span> Large_Cap, color <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;大盘股&#34;</span>)) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>geom_line</span>(<span style=color:#a6e22e>aes</span>(y <span style=color:#f92672>=</span> Small_Cap, color <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;小盘股&#34;</span>)) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>labs</span>(
+</span></span><span style=display:flex><span>    title <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;大盘股与小盘股价格走势对比&#34;</span>,
+</span></span><span style=display:flex><span>    y <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;归一化价格&#34;</span>,
+</span></span><span style=display:flex><span>    color <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;股票类型&#34;</span>
+</span></span><span style=display:flex><span>  ) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>theme_minimal</span>() <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>scale_color_manual</span>(values <span style=color:#f92672>=</span> <span style=color:#a6e22e>c</span>(<span style=color:#e6db74>&#34;大盘股&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;blue&#34;</span>, <span style=color:#e6db74>&#34;小盘股&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;red&#34;</span>))
+</span></span></code></pre></div><img src=/post/momentum-rotation_files/figure-html/priceComparison-1.png width=90% style=display:block;margin:auto><h1 id=动量轮动策略实现>动量轮动策略实现</h1><p>下面我们实现基于动量的大盘股/小盘股轮动策略。该策略的核心思想是：比较大盘股和小盘
+股的相对动量，选择动量更强的一组进行投资。</p><p>首先定义一个函数来实现这个策略：</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#75715e># 改进的动量轮动策略函数</span>
+</span></span><span style=display:flex><span>momentum_rotation_strategy <span style=color:#f92672>&lt;-</span> <span style=color:#66d9ef>function</span>(large_cap_data, small_cap_data,
+</span></span><span style=display:flex><span>                                       lookback_period <span style=color:#f92672>=</span> <span style=color:#ae81ff>20</span>,
+</span></span><span style=display:flex><span>                                       holding_period <span style=color:#f92672>=</span> <span style=color:#ae81ff>10</span>,
+</span></span><span style=display:flex><span>                                       rebalance_threshold <span style=color:#f92672>=</span> <span style=color:#ae81ff>0.05</span>,
+</span></span><span style=display:flex><span>                                       commission <span style=color:#f92672>=</span> <span style=color:#ae81ff>0.001</span>) {
+</span></span><span style=display:flex><span>  <span style=color:#75715e># 函数：计算单只股票的对数收益率</span>
+</span></span><span style=display:flex><span>  calculate_returns <span style=color:#f92672>&lt;-</span> <span style=color:#66d9ef>function</span>(stock_data) {
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>colnames</span>(stock_data) <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>c</span>(<span style=color:#e6db74>&#34;Open&#34;</span>, <span style=color:#e6db74>&#34;High&#34;</span>, <span style=color:#e6db74>&#34;Low&#34;</span>, <span style=color:#e6db74>&#34;Close&#34;</span>, <span style=color:#e6db74>&#34;Volume&#34;</span>, <span style=color:#e6db74>&#34;Adjusted&#34;</span>)
+</span></span><span style=display:flex><span>    close_prices <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>Cl</span>(stock_data)
+</span></span><span style=display:flex><span>    returns <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>dailyReturn</span>(close_prices, type <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;log&#34;</span>)
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>colnames</span>(returns) <span style=color:#f92672>&lt;-</span> <span style=color:#e6db74>&#34;&#34;</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span>(returns)
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#75715e># 计算所有股票的收益率</span>
+</span></span><span style=display:flex><span>  large_cap_returns_list <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>lapply</span>(large_cap_data, calculate_returns)
+</span></span><span style=display:flex><span>  small_cap_returns_list <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>lapply</span>(small_cap_data, calculate_returns)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#75715e># 合并所有收益率数据，自动对齐日期</span>
+</span></span><span style=display:flex><span>  large_cap_returns_merged <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>do.call</span>(merge, large_cap_returns_list)
+</span></span><span style=display:flex><span>  small_cap_returns_merged <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>do.call</span>(merge, small_cap_returns_list)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#75715e># 将所有NA值填充为0</span>
+</span></span><span style=display:flex><span>  large_cap_returns_merged <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>na.fill</span>(large_cap_returns_merged, fill <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>)
+</span></span><span style=display:flex><span>  small_cap_returns_merged <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>na.fill</span>(small_cap_returns_merged, fill <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#75715e># 确保两个数据集具有相同的日期范围</span>
+</span></span><span style=display:flex><span>  common_dates <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>intersect</span>(<span style=color:#a6e22e>index</span>(large_cap_returns_merged), 
+</span></span><span style=display:flex><span>                            <span style=color:#a6e22e>index</span>(small_cap_returns_merged))
+</span></span><span style=display:flex><span>  large_cap_returns_merged <span style=color:#f92672>&lt;-</span> large_cap_returns_merged[common_dates]
+</span></span><span style=display:flex><span>  small_cap_returns_merged <span style=color:#f92672>&lt;-</span> small_cap_returns_merged[common_dates]
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#75715e># 计算平均收益率（保持xts格式）</span>
+</span></span><span style=display:flex><span>  large_cap_avg_returns <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>xts</span>(<span style=color:#a6e22e>rowMeans</span>(large_cap_returns_merged),
+</span></span><span style=display:flex><span>    order.by <span style=color:#f92672>=</span> <span style=color:#a6e22e>index</span>(large_cap_returns_merged)
+</span></span><span style=display:flex><span>  )
+</span></span><span style=display:flex><span>  small_cap_avg_returns <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>xts</span>(<span style=color:#a6e22e>rowMeans</span>(small_cap_returns_merged),
+</span></span><span style=display:flex><span>    order.by <span style=color:#f92672>=</span> <span style=color:#a6e22e>index</span>(small_cap_returns_merged)
+</span></span><span style=display:flex><span>  )
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#75715e># 计算动量指标（lookback_period天的累计收益率）</span>
+</span></span><span style=display:flex><span>  large_cap_momentum <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>xts</span>(<span style=color:#a6e22e>rep</span>(<span style=color:#ae81ff>0</span>, <span style=color:#a6e22e>length</span>(large_cap_avg_returns)),
+</span></span><span style=display:flex><span>    order.by <span style=color:#f92672>=</span> <span style=color:#a6e22e>index</span>(large_cap_avg_returns)
+</span></span><span style=display:flex><span>  )
+</span></span><span style=display:flex><span>  small_cap_momentum <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>xts</span>(<span style=color:#a6e22e>rep</span>(<span style=color:#ae81ff>0</span>, <span style=color:#a6e22e>length</span>(small_cap_avg_returns)),
+</span></span><span style=display:flex><span>    order.by <span style=color:#f92672>=</span> <span style=color:#a6e22e>index</span>(small_cap_avg_returns)
+</span></span><span style=display:flex><span>  )
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>for</span> (i <span style=color:#66d9ef>in</span> (lookback_period <span style=color:#f92672>+</span> <span style=color:#ae81ff>1</span>)<span style=color:#f92672>:</span><span style=color:#a6e22e>length</span>(large_cap_avg_returns)) {
+</span></span><span style=display:flex><span>    large_cap_momentum[i] <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>sum</span>(large_cap_avg_returns<span style=color:#a6e22e>[</span>(i <span style=color:#f92672>-</span> lookback_period)<span style=color:#f92672>:</span>i])
+</span></span><span style=display:flex><span>    small_cap_momentum[i] <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>sum</span>(small_cap_avg_returns<span style=color:#a6e22e>[</span>(i <span style=color:#f92672>-</span> lookback_period)<span style=color:#f92672>:</span>i])
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#75715e># 初始化仓位（保持xts格式）</span>
+</span></span><span style=display:flex><span>  position <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>xts</span>(<span style=color:#a6e22e>rep</span>(<span style=color:#ae81ff>0</span>, <span style=color:#a6e22e>length</span>(large_cap_avg_returns)),
+</span></span><span style=display:flex><span>    order.by <span style=color:#f92672>=</span> <span style=color:#a6e22e>index</span>(large_cap_avg_returns)
+</span></span><span style=display:flex><span>  )
+</span></span><span style=display:flex><span>  position[lookback_period <span style=color:#f92672>+</span> <span style=color:#ae81ff>1</span>] <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>ifelse</span>(large_cap_momentum[lookback_period <span style=color:#f92672>+</span> <span style=color:#ae81ff>1</span>] <span style=color:#f92672>&gt;</span> small_cap_momentum[lookback_period <span style=color:#f92672>+</span> <span style=color:#ae81ff>1</span>], <span style=color:#ae81ff>1</span>, <span style=color:#ae81ff>-1</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#75715e># 生成交易信号</span>
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>for</span> (i <span style=color:#66d9ef>in</span> (lookback_period <span style=color:#f92672>+</span> <span style=color:#ae81ff>2</span>)<span style=color:#f92672>:</span><span style=color:#a6e22e>length</span>(large_cap_avg_returns)) {
+</span></span><span style=display:flex><span>    <span style=color:#75715e># 每隔holding_period天重新评估一次</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> ((i <span style=color:#f92672>-</span> lookback_period) <span style=color:#f92672>%%</span> holding_period <span style=color:#f92672>==</span> <span style=color:#ae81ff>0</span>) {
+</span></span><span style=display:flex><span>      <span style=color:#75715e># 计算动量差异</span>
+</span></span><span style=display:flex><span>      momentum_diff <span style=color:#f92672>&lt;-</span> large_cap_momentum[i] <span style=color:#f92672>-</span> small_cap_momentum[i]
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>      <span style=color:#75715e># 如果动量差异超过阈值，则切换仓位</span>
+</span></span><span style=display:flex><span>      <span style=color:#66d9ef>if</span> (<span style=color:#a6e22e>abs</span>(momentum_diff) <span style=color:#f92672>&gt;</span> rebalance_threshold) {
+</span></span><span style=display:flex><span>        position[i] <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>ifelse</span>(momentum_diff <span style=color:#f92672>&gt;</span> <span style=color:#ae81ff>0</span>, <span style=color:#ae81ff>1</span>, <span style=color:#ae81ff>-1</span>)
+</span></span><span style=display:flex><span>      } <span style=color:#66d9ef>else</span> {
+</span></span><span style=display:flex><span>        <span style=color:#75715e># 否则保持原仓位</span>
+</span></span><span style=display:flex><span>        position[i] <span style=color:#f92672>&lt;-</span> position[i <span style=color:#f92672>-</span> <span style=color:#ae81ff>1</span>]
+</span></span><span style=display:flex><span>      }
+</span></span><span style=display:flex><span>    } <span style=color:#66d9ef>else</span> {
+</span></span><span style=display:flex><span>      <span style=color:#75715e># 保持原仓位</span>
+</span></span><span style=display:flex><span>      position[i] <span style=color:#f92672>&lt;-</span> position[i <span style=color:#f92672>-</span> <span style=color:#ae81ff>1</span>]
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#75715e># 计算策略收益（保持xts格式）</span>
+</span></span><span style=display:flex><span>  strategy_returns <span style=color:#f92672>&lt;-</span> position <span style=color:#f92672>*</span> (large_cap_avg_returns <span style=color:#f92672>-</span> small_cap_avg_returns)
+</span></span><span style=display:flex><span>  strategy_return <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>na.fill</span>(strategy_returns, fill <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>) <span style=color:#75715e># 将NA值填充为0</span>
+</span></span><span style=display:flex><span>  <span style=color:#75715e># 考虑交易成本</span>
+</span></span><span style=display:flex><span>  <span style=color:#75715e># 创建与position相同长度和索引的trades对象</span>
+</span></span><span style=display:flex><span>  trades <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>xts</span>(<span style=color:#a6e22e>rep</span>(<span style=color:#ae81ff>0</span>, <span style=color:#a6e22e>length</span>(position)), order.by <span style=color:#f92672>=</span> <span style=color:#a6e22e>index</span>(position))
+</span></span><span style=display:flex><span>  trades <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>abs</span>(<span style=color:#a6e22e>diff</span>(position)) <span style=color:#f92672>&gt;</span> <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>  trades <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>na.fill</span>(trades, fill <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;FALSE&#34;</span>) <span style=color:#75715e># 将NA值填充为FALSE</span>
+</span></span><span style=display:flex><span>  commission_cost <span style=color:#f92672>&lt;-</span> trades <span style=color:#f92672>*</span> commission
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#75715e># 计算净收益（保持xts格式）</span>
+</span></span><span style=display:flex><span>  net_returns <span style=color:#f92672>&lt;-</span> strategy_returns <span style=color:#f92672>-</span> commission_cost
+</span></span><span style=display:flex><span>  net_returns <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>na.fill</span>(net_returns, fill <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>) <span style=color:#75715e># 将NA值填充为0</span>
+</span></span><span style=display:flex><span>  <span style=color:#75715e># 计算累积收益（保持xts格式）</span>
+</span></span><span style=display:flex><span>  cumulative_returns <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>exp</span>(<span style=color:#a6e22e>cumsum</span>(net_returns)) <span style=color:#f92672>-</span> <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#75715e># 返回结果（同时包含xts和data.frame格式）</span>
+</span></span><span style=display:flex><span>  results_xts <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>list</span>(
+</span></span><span style=display:flex><span>    Large_Cap_Returns <span style=color:#f92672>=</span> large_cap_avg_returns,
+</span></span><span style=display:flex><span>    Small_Cap_Returns <span style=color:#f92672>=</span> small_cap_avg_returns,
+</span></span><span style=display:flex><span>    Strategy_Returns <span style=color:#f92672>=</span> strategy_returns,
+</span></span><span style=display:flex><span>    Commission_Cost <span style=color:#f92672>=</span> commission_cost,
+</span></span><span style=display:flex><span>    Net_Returns <span style=color:#f92672>=</span> net_returns,
+</span></span><span style=display:flex><span>    Cumulative_Returns <span style=color:#f92672>=</span> cumulative_returns,
+</span></span><span style=display:flex><span>    Position <span style=color:#f92672>=</span> position,
+</span></span><span style=display:flex><span>    Large_Cap_Momentum <span style=color:#f92672>=</span> large_cap_momentum,
+</span></span><span style=display:flex><span>    Small_Cap_Momentum <span style=color:#f92672>=</span> small_cap_momentum
+</span></span><span style=display:flex><span>  )
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  results_df <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>data.frame</span>(
+</span></span><span style=display:flex><span>    Date <span style=color:#f92672>=</span> <span style=color:#a6e22e>as.Date</span>(<span style=color:#a6e22e>index</span>(large_cap_avg_returns)),
+</span></span><span style=display:flex><span>    Large_Cap_Momentum <span style=color:#f92672>=</span> <span style=color:#a6e22e>as.numeric</span>(large_cap_momentum),
+</span></span><span style=display:flex><span>    Small_Cap_Momentum <span style=color:#f92672>=</span> <span style=color:#a6e22e>as.numeric</span>(small_cap_momentum),
+</span></span><span style=display:flex><span>    Position <span style=color:#f92672>=</span> <span style=color:#a6e22e>as.numeric</span>(position),
+</span></span><span style=display:flex><span>    Large_Cap_Returns <span style=color:#f92672>=</span> <span style=color:#a6e22e>as.numeric</span>(large_cap_avg_returns),
+</span></span><span style=display:flex><span>    Small_Cap_Returns <span style=color:#f92672>=</span> <span style=color:#a6e22e>as.numeric</span>(small_cap_avg_returns),
+</span></span><span style=display:flex><span>    Strategy_Returns <span style=color:#f92672>=</span> <span style=color:#a6e22e>as.numeric</span>(strategy_returns),
+</span></span><span style=display:flex><span>    Commission_Cost <span style=color:#f92672>=</span> <span style=color:#a6e22e>as.numeric</span>(commission_cost),
+</span></span><span style=display:flex><span>    Net_Returns <span style=color:#f92672>=</span> <span style=color:#a6e22e>as.numeric</span>(net_returns),
+</span></span><span style=display:flex><span>    Cumulative_Returns <span style=color:#f92672>=</span> <span style=color:#a6e22e>as.numeric</span>(cumulative_returns)
+</span></span><span style=display:flex><span>  )
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>colnames</span>(results_df) <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>c</span>(
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;Date&#34;</span>, <span style=color:#e6db74>&#34;Large_Cap_Momentum&#34;</span>, <span style=color:#e6db74>&#34;Small_Cap_Momentum&#34;</span>,
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;Position&#34;</span>, <span style=color:#e6db74>&#34;Large_Cap_Returns&#34;</span>, <span style=color:#e6db74>&#34;Small_Cap_Returns&#34;</span>,
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;Strategy_Returns&#34;</span>, <span style=color:#e6db74>&#34;Commission_Cost&#34;</span>,
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;Net_Returns&#34;</span>, <span style=color:#e6db74>&#34;Cumulative_Returns&#34;</span>
+</span></span><span style=display:flex><span>  )
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>return</span>(<span style=color:#a6e22e>list</span>(df <span style=color:#f92672>=</span> results_df, xts <span style=color:#f92672>=</span> results_xts))
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><p>现在我们将这个策略应用到数据上，并评估其表现：</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#75715e># 应用策略到数据</span>
+</span></span><span style=display:flex><span>strategy_results <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>momentum_rotation_strategy</span>(
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>lapply</span>(large_cap_symbols, <span style=color:#66d9ef>function</span>(symbol) stock_data[[symbol]]),
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>lapply</span>(small_cap_symbols, <span style=color:#66d9ef>function</span>(symbol) stock_data[[symbol]])
+</span></span><span style=display:flex><span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 计算买入持有策略的收益（保持xts格式）</span>
+</span></span><span style=display:flex><span>buy_hold_large_cap <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>exp</span>(<span style=color:#a6e22e>cumsum</span>(strategy_results<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Large_Cap_Returns)) <span style=color:#f92672>-</span> <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>buy_hold_small_cap <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>exp</span>(<span style=color:#a6e22e>cumsum</span>(strategy_results<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Small_Cap_Returns)) <span style=color:#f92672>-</span> <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>buy_hold_equal <span style=color:#f92672>&lt;-</span> (buy_hold_large_cap <span style=color:#f92672>+</span> buy_hold_small_cap) <span style=color:#f92672>/</span> <span style=color:#ae81ff>2</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 使用ggplot2绘制累积收益对比图</span>
+</span></span><span style=display:flex><span>performance_data <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>data.frame</span>(
+</span></span><span style=display:flex><span>  Date <span style=color:#f92672>=</span> <span style=color:#a6e22e>as.Date</span>(<span style=color:#a6e22e>index</span>(buy_hold_large_cap)),
+</span></span><span style=display:flex><span>  Large_Cap <span style=color:#f92672>=</span> <span style=color:#a6e22e>as.numeric</span>(buy_hold_large_cap),
+</span></span><span style=display:flex><span>  Small_Cap <span style=color:#f92672>=</span> <span style=color:#a6e22e>as.numeric</span>(buy_hold_small_cap),
+</span></span><span style=display:flex><span>  Equal_Weight <span style=color:#f92672>=</span> <span style=color:#a6e22e>as.numeric</span>(buy_hold_equal),
+</span></span><span style=display:flex><span>  Momentum <span style=color:#f92672>=</span> <span style=color:#a6e22e>as.numeric</span>(strategy_results<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Cumulative_Returns)
+</span></span><span style=display:flex><span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 转换为长格式数据以便绘图</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>library</span>(tidyr)
+</span></span><span style=display:flex><span>performance_data_long <span style=color:#f92672>&lt;-</span> performance_data <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>pivot_longer</span>(cols <span style=color:#f92672>=</span> <span style=color:#f92672>-</span>Date, 
+</span></span><span style=display:flex><span>               names_to <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Strategy&#34;</span>, 
+</span></span><span style=display:flex><span>               values_to <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Cumulative_Return&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 绘制对比图</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>library</span>(ggplot2)
+</span></span><span style=display:flex><span><span style=color:#a6e22e>ggplot</span>(performance_data_long, 
+</span></span><span style=display:flex><span>       <span style=color:#a6e22e>aes</span>(x <span style=color:#f92672>=</span> Date, 
+</span></span><span style=display:flex><span>           y <span style=color:#f92672>=</span> Cumulative_Return, 
+</span></span><span style=display:flex><span>           color <span style=color:#f92672>=</span> Strategy)) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>geom_line</span>() <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>labs</span>(
+</span></span><span style=display:flex><span>    title <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Momentum Rotation Strategy Performance&#34;</span>,
+</span></span><span style=display:flex><span>    x <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Date&#34;</span>, 
+</span></span><span style=display:flex><span>    y <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Cumulative Return&#34;</span>
+</span></span><span style=display:flex><span>  ) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>scale_color_manual</span>(values <span style=color:#f92672>=</span> <span style=color:#a6e22e>c</span>(
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;Large_Cap&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;blue&#34;</span>, <span style=color:#e6db74>&#34;Small_Cap&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;red&#34;</span>,
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;Equal_Weight&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;green&#34;</span>, <span style=color:#e6db74>&#34;Momentum&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;purple&#34;</span>
+</span></span><span style=display:flex><span>  )) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>theme_minimal</span>() <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>theme</span>(legend.title <span style=color:#f92672>=</span> <span style=color:#a6e22e>element_blank</span>())
+</span></span></code></pre></div><img src=/post/momentum-rotation_files/figure-html/ApplyStrategy-1.png width=90% style=display:block;margin:auto><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#75715e># 计算策略表现指标</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>library</span>(PerformanceAnalytics)
+</span></span><span style=display:flex><span>performance_metrics <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>data.frame</span>(
+</span></span><span style=display:flex><span>  Strategy <span style=color:#f92672>=</span> <span style=color:#a6e22e>c</span>(
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;Large Cap Buy &amp; Hold&#34;</span>, <span style=color:#e6db74>&#34;Small Cap Buy &amp; Hold&#34;</span>,
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;Equal Weight Buy &amp; Hold&#34;</span>, <span style=color:#e6db74>&#34;Momentum Rotation&#34;</span>
+</span></span><span style=display:flex><span>  ),
+</span></span><span style=display:flex><span>  Total_Return <span style=color:#f92672>=</span> <span style=color:#a6e22e>c</span>(
+</span></span><span style=display:flex><span>    buy_hold_large_cap<span style=color:#a6e22e>[length</span>(buy_hold_large_cap)],
+</span></span><span style=display:flex><span>    buy_hold_small_cap<span style=color:#a6e22e>[length</span>(buy_hold_small_cap)],
+</span></span><span style=display:flex><span>    buy_hold_equal<span style=color:#a6e22e>[length</span>(buy_hold_equal)],
+</span></span><span style=display:flex><span>    strategy_results<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Cumulative_Returns<span style=color:#a6e22e>[length</span>(strategy_results<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Cumulative_Returns)]
+</span></span><span style=display:flex><span>  ),
+</span></span><span style=display:flex><span>  Sharpe_Ratio <span style=color:#f92672>=</span> <span style=color:#a6e22e>c</span>(
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>SharpeRatio.annualized</span>(strategy_results<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Large_Cap_Returns),
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>SharpeRatio.annualized</span>(strategy_results<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Small_Cap_Returns),
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>SharpeRatio.annualized</span>((strategy_results<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Large_Cap_Returns <span style=color:#f92672>+</span> strategy_results<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Small_Cap_Returns) <span style=color:#f92672>/</span> <span style=color:#ae81ff>2</span>),
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>SharpeRatio.annualized</span>(strategy_results<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Net_Returns)
+</span></span><span style=display:flex><span>  ),
+</span></span><span style=display:flex><span>  Max_Drawdown <span style=color:#f92672>=</span> <span style=color:#a6e22e>c</span>(
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>maxDrawdown</span>(strategy_results<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Large_Cap_Returns),
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>maxDrawdown</span>(strategy_results<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Small_Cap_Returns),
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>maxDrawdown</span>((strategy_results<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Large_Cap_Returns <span style=color:#f92672>+</span> strategy_results<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Small_Cap_Returns) <span style=color:#f92672>/</span> <span style=color:#ae81ff>2</span>),
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>maxDrawdown</span>(strategy_results<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Net_Returns)
+</span></span><span style=display:flex><span>  )
+</span></span><span style=display:flex><span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 展示性能指标</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>print</span>(performance_metrics)
+</span></span></code></pre></div><pre tabindex=0><code>##                              Strategy Total_Return Sharpe_Ratio Max_Drawdown
+## X2022.12.30      Large Cap Buy &amp; Hold    1.8775824    0.4884327    0.5331828
+## X2022.12.30.1    Small Cap Buy &amp; Hold   -0.8534490   -0.6581043    0.9683605
+## X2022.12.30.2 Equal Weight Buy &amp; Hold    0.5120667   -0.3795699    0.7173901
+## X2022.12.30.3       Momentum Rotation    7.8035737    0.3099696    0.6298531
+</code></pre><h1 id=参数优化>参数优化</h1><p>接下来，我们将优化动量轮动策略的参数。主要优化的参数是回看期(lookback_period)、
+持有期(holding_period)和再平衡阈值(rebalance_threshold)。</p><p>我们将使用网格搜索方法来寻找最优参数组合：</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#75715e># 参数优化主流程</span>
+</span></span><span style=display:flex><span>pkg <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>c</span>(
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;quantmod&#34;</span>, <span style=color:#e6db74>&#34;PerformanceAnalytics&#34;</span>, <span style=color:#e6db74>&#34;foreach&#34;</span>, <span style=color:#e6db74>&#34;doParallel&#34;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;ggplot2&#34;</span>, <span style=color:#e6db74>&#34;dplyr&#34;</span>, <span style=color:#e6db74>&#34;tidyr&#34;</span>, <span style=color:#e6db74>&#34;caret&#34;</span>, <span style=color:#e6db74>&#34;magrittr&#34;</span>
+</span></span><span style=display:flex><span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 设置参数网格</span>
+</span></span><span style=display:flex><span>lookback_periods <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>c</span>(<span style=color:#ae81ff>5</span>, <span style=color:#ae81ff>10</span>, <span style=color:#ae81ff>20</span>, <span style=color:#ae81ff>30</span>, <span style=color:#ae81ff>60</span>)
+</span></span><span style=display:flex><span>holding_periods <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>c</span>(<span style=color:#ae81ff>5</span>, <span style=color:#ae81ff>10</span>, <span style=color:#ae81ff>20</span>, <span style=color:#ae81ff>30</span>)
+</span></span><span style=display:flex><span>rebalance_thresholds <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>c</span>(<span style=color:#ae81ff>0.01</span>, <span style=color:#ae81ff>0.025</span>, <span style=color:#ae81ff>0.05</span>, <span style=color:#ae81ff>0.1</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 创建并行集群</span>
+</span></span><span style=display:flex><span>cl <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>makeCluster</span>(<span style=color:#a6e22e>detectCores</span>() <span style=color:#f92672>-</span> <span style=color:#ae81ff>1</span>)
+</span></span><span style=display:flex><span><span style=color:#a6e22e>registerDoParallel</span>(cl)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 带错误处理的参数优化</span>
+</span></span><span style=display:flex><span>optimization_results <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>foreach</span>(
+</span></span><span style=display:flex><span>  lookback <span style=color:#f92672>=</span> lookback_periods, .combine <span style=color:#f92672>=</span> rbind,
+</span></span><span style=display:flex><span>  .packages <span style=color:#f92672>=</span> pkg, .errorhandling <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;pass&#34;</span>
+</span></span><span style=display:flex><span>) <span style=color:#f92672>%:%</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>foreach</span>(
+</span></span><span style=display:flex><span>    holding <span style=color:#f92672>=</span> holding_periods, .combine <span style=color:#f92672>=</span> rbind,
+</span></span><span style=display:flex><span>    .packages <span style=color:#f92672>=</span> pkg
+</span></span><span style=display:flex><span>  ) <span style=color:#f92672>%:%</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>foreach</span>(
+</span></span><span style=display:flex><span>    threshold <span style=color:#f92672>=</span> rebalance_thresholds, .combine <span style=color:#f92672>=</span> rbind,
+</span></span><span style=display:flex><span>    .packages <span style=color:#f92672>=</span> pkg
+</span></span><span style=display:flex><span>  ) <span style=color:#f92672>%dopar%</span> {
+</span></span><span style=display:flex><span>    strategy_result <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>momentum_rotation_strategy</span>(
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>lapply</span>(large_cap_symbols, <span style=color:#66d9ef>function</span>(s) stock_data[[s]]),
+</span></span><span style=display:flex><span>      <span style=color:#a6e22e>lapply</span>(small_cap_symbols, <span style=color:#66d9ef>function</span>(s) stock_data[[s]]),
+</span></span><span style=display:flex><span>      lookback, holding, threshold
+</span></span><span style=display:flex><span>    )
+</span></span><span style=display:flex><span>    strategy_result_xts <span style=color:#f92672>&lt;-</span> strategy_result<span style=color:#f92672>$</span>xts
+</span></span><span style=display:flex><span>    net_returns <span style=color:#f92672>&lt;-</span> strategy_result_xts<span style=color:#f92672>$</span>Net_Returns
+</span></span><span style=display:flex><span>    sharpe <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>as.numeric</span>(<span style=color:#a6e22e>SharpeRatio.annualized</span>(net_returns)[1])
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>data.frame</span>(
+</span></span><span style=display:flex><span>      Lookback_Period <span style=color:#f92672>=</span> lookback,
+</span></span><span style=display:flex><span>      Holding_Period <span style=color:#f92672>=</span> holding,
+</span></span><span style=display:flex><span>      Rebalance_Threshold <span style=color:#f92672>=</span> threshold,
+</span></span><span style=display:flex><span>      Sharpe_Ratio <span style=color:#f92672>=</span> sharpe
+</span></span><span style=display:flex><span>    )
+</span></span><span style=display:flex><span>  }
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>stopCluster</span>(cl)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 结果处理与可视化</span>
+</span></span><span style=display:flex><span>optimization_results <span style=color:#f92672>&lt;-</span> optimization_results<span style=color:#a6e22e>[complete.cases</span>(optimization_results), ]
+</span></span><span style=display:flex><span>best_params <span style=color:#f92672>&lt;-</span> optimization_results<span style=color:#a6e22e>[which.max</span>(optimization_results<span style=color:#f92672>$</span>Sharpe_Ratio), ]
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>print</span>(<span style=color:#a6e22e>paste</span>(
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34;最优参数组合: 回看期=&#34;</span>, best_params<span style=color:#f92672>$</span>Lookback_Period,
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34; 持有期=&#34;</span>, best_params<span style=color:#f92672>$</span>Holding_Period,
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34; 阈值=&#34;</span>, best_params<span style=color:#f92672>$</span>Rebalance_Threshold,
+</span></span><span style=display:flex><span>  <span style=color:#e6db74>&#34; 夏普比率=&#34;</span>, <span style=color:#a6e22e>round</span>(best_params<span style=color:#f92672>$</span>Sharpe_Ratio, <span style=color:#ae81ff>3</span>)
+</span></span><span style=display:flex><span>))
+</span></span></code></pre></div><pre tabindex=0><code>## [1] &#34;最优参数组合: 回看期= 60  持有期= 5  阈值= 0.01  夏普比率= 1.347&#34;
+</code></pre><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#a6e22e>ggplot</span>(
+</span></span><span style=display:flex><span>  optimization_results,
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>aes</span>(
+</span></span><span style=display:flex><span>    x <span style=color:#f92672>=</span> <span style=color:#a6e22e>factor</span>(Lookback_Period), y <span style=color:#f92672>=</span> Sharpe_Ratio,
+</span></span><span style=display:flex><span>    fill <span style=color:#f92672>=</span> <span style=color:#a6e22e>factor</span>(Holding_Period)
+</span></span><span style=display:flex><span>  )
+</span></span><span style=display:flex><span>) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>geom_boxplot</span>() <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>facet_wrap</span>(<span style=color:#f92672>~</span>Rebalance_Threshold, labeller <span style=color:#f92672>=</span> label_both) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>theme_minimal</span>() <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>labs</span>(
+</span></span><span style=display:flex><span>    title <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;动量策略参数优化结果 (2025-06-14)&#34;</span>,
+</span></span><span style=display:flex><span>    x <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;回看期(天)&#34;</span>,
+</span></span><span style=display:flex><span>    y <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;年化夏普比率&#34;</span>,
+</span></span><span style=display:flex><span>    fill <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;持有期(天)&#34;</span>
+</span></span><span style=display:flex><span>  )
+</span></span></code></pre></div><img src=/post/momentum-rotation_files/figure-html/ParameterOptimization-1.png width=90% style=display:block;margin:auto><h1 id=参数敏感性分析>参数敏感性分析</h1><p>为了进一步了解策略对不同参数的敏感性，我们将进行更详细的参数敏感性分析。</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#75715e># 1. 回看期敏感性分析</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 创建存储结果的数据框结构</span>
+</span></span><span style=display:flex><span>lookback_sensitivity <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>data.frame</span>(
+</span></span><span style=display:flex><span>  Lookback_Period <span style=color:#f92672>=</span> lookback_periods, <span style=color:#75715e># 参数测试序列</span>
+</span></span><span style=display:flex><span>  Sharpe_Ratio <span style=color:#f92672>=</span> <span style=color:#a6e22e>numeric</span>(<span style=color:#a6e22e>length</span>(lookback_periods)), <span style=color:#75715e># 夏普比率</span>
+</span></span><span style=display:flex><span>  Total_Return <span style=color:#f92672>=</span> <span style=color:#a6e22e>numeric</span>(<span style=color:#a6e22e>length</span>(lookback_periods)), <span style=color:#75715e># 总收益</span>
+</span></span><span style=display:flex><span>  Max_Drawdown <span style=color:#f92672>=</span> <span style=color:#a6e22e>numeric</span>(<span style=color:#a6e22e>length</span>(lookback_periods)) <span style=color:#75715e># 最大回撤</span>
+</span></span><span style=display:flex><span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 遍历测试不同回看期参数</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>for</span> (i <span style=color:#66d9ef>in</span> <span style=color:#a6e22e>seq_along</span>(lookback_periods)) {
+</span></span><span style=display:flex><span>  result <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>momentum_rotation_strategy</span>(
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>lapply</span>(large_cap_symbols, <span style=color:#66d9ef>function</span>(s) stock_data[[s]]), <span style=color:#75715e># 大盘股数据</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>lapply</span>(small_cap_symbols, <span style=color:#66d9ef>function</span>(s) stock_data[[s]]), <span style=color:#75715e># 小盘股数据</span>
+</span></span><span style=display:flex><span>    lookback_period <span style=color:#f92672>=</span> lookback_periods[i], <span style=color:#75715e># 当前测试的回看期</span>
+</span></span><span style=display:flex><span>    holding_period <span style=color:#f92672>=</span> best_params<span style=color:#f92672>$</span>Holding_Period, <span style=color:#75715e># 固定持有期</span>
+</span></span><span style=display:flex><span>    rebalance_threshold <span style=color:#f92672>=</span> best_params<span style=color:#f92672>$</span>Rebalance_Threshold <span style=color:#75715e># 固定阈值</span>
+</span></span><span style=display:flex><span>  )
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#75715e># 存储绩效指标</span>
+</span></span><span style=display:flex><span>  lookback_sensitivity<span style=color:#f92672>$</span>Sharpe_Ratio[i] <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>SharpeRatio.annualized</span>(result<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Net_Returns)
+</span></span><span style=display:flex><span>  lookback_sensitivity<span style=color:#f92672>$</span>Total_Return[i] <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>tail</span>(result<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Cumulative_Returns, <span style=color:#ae81ff>1</span>)
+</span></span><span style=display:flex><span>  lookback_sensitivity<span style=color:#f92672>$</span>Max_Drawdown[i] <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>maxDrawdown</span>(result<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Net_Returns)
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 2. 持有期敏感性分析（结构同上）</span>
+</span></span><span style=display:flex><span>holding_sensitivity <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>data.frame</span>(
+</span></span><span style=display:flex><span>  Holding_Period <span style=color:#f92672>=</span> holding_periods,
+</span></span><span style=display:flex><span>  Sharpe_Ratio <span style=color:#f92672>=</span> <span style=color:#a6e22e>numeric</span>(<span style=color:#a6e22e>length</span>(holding_periods)),
+</span></span><span style=display:flex><span>  Total_Return <span style=color:#f92672>=</span> <span style=color:#a6e22e>numeric</span>(<span style=color:#a6e22e>length</span>(holding_periods)),
+</span></span><span style=display:flex><span>  Max_Drawdown <span style=color:#f92672>=</span> <span style=color:#a6e22e>numeric</span>(<span style=color:#a6e22e>length</span>(holding_periods))
+</span></span><span style=display:flex><span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>for</span> (i <span style=color:#66d9ef>in</span> <span style=color:#a6e22e>seq_along</span>(holding_periods)) {
+</span></span><span style=display:flex><span>  result <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>momentum_rotation_strategy</span>(
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>lapply</span>(large_cap_symbols, <span style=color:#66d9ef>function</span>(s) stock_data[[s]]),
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>lapply</span>(small_cap_symbols, <span style=color:#66d9ef>function</span>(s) stock_data[[s]]),
+</span></span><span style=display:flex><span>    lookback_period <span style=color:#f92672>=</span> best_params<span style=color:#f92672>$</span>Lookback_Period,
+</span></span><span style=display:flex><span>    holding_period <span style=color:#f92672>=</span> holding_periods[i], <span style=color:#75715e># 测试不同持有期</span>
+</span></span><span style=display:flex><span>    rebalance_threshold <span style=color:#f92672>=</span> best_params<span style=color:#f92672>$</span>Rebalance_Threshold
+</span></span><span style=display:flex><span>  )
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  holding_sensitivity<span style=color:#f92672>$</span>Sharpe_Ratio[i] <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>SharpeRatio.annualized</span>(result<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Net_Returns)
+</span></span><span style=display:flex><span>  holding_sensitivity<span style=color:#f92672>$</span>Total_Return[i] <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>tail</span>(result<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Cumulative_Returns, <span style=color:#ae81ff>1</span>)
+</span></span><span style=display:flex><span>  holding_sensitivity<span style=color:#f92672>$</span>Max_Drawdown[i] <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>maxDrawdown</span>(result<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Net_Returns)
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 3. 再平衡阈值敏感性分析</span>
+</span></span><span style=display:flex><span>threshold_sensitivity <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>data.frame</span>(
+</span></span><span style=display:flex><span>  Rebalance_Threshold <span style=color:#f92672>=</span> rebalance_thresholds,
+</span></span><span style=display:flex><span>  Sharpe_Ratio <span style=color:#f92672>=</span> <span style=color:#a6e22e>numeric</span>(<span style=color:#a6e22e>length</span>(rebalance_thresholds)),
+</span></span><span style=display:flex><span>  Total_Return <span style=color:#f92672>=</span> <span style=color:#a6e22e>numeric</span>(<span style=color:#a6e22e>length</span>(rebalance_thresholds)),
+</span></span><span style=display:flex><span>  Max_Drawdown <span style=color:#f92672>=</span> <span style=color:#a6e22e>numeric</span>(<span style=color:#a6e22e>length</span>(rebalance_thresholds))
+</span></span><span style=display:flex><span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>for</span> (i <span style=color:#66d9ef>in</span> <span style=color:#a6e22e>seq_along</span>(rebalance_thresholds)) {
+</span></span><span style=display:flex><span>  result <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>momentum_rotation_strategy</span>(
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>lapply</span>(large_cap_symbols, <span style=color:#66d9ef>function</span>(s) stock_data[[s]]),
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>lapply</span>(small_cap_symbols, <span style=color:#66d9ef>function</span>(s) stock_data[[s]]),
+</span></span><span style=display:flex><span>    lookback_period <span style=color:#f92672>=</span> best_params<span style=color:#f92672>$</span>Lookback_Period,
+</span></span><span style=display:flex><span>    holding_period <span style=color:#f92672>=</span> best_params<span style=color:#f92672>$</span>Holding_Period,
+</span></span><span style=display:flex><span>    rebalance_threshold <span style=color:#f92672>=</span> rebalance_thresholds[i] <span style=color:#75715e># 测试不同阈值</span>
+</span></span><span style=display:flex><span>  )
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  threshold_sensitivity<span style=color:#f92672>$</span>Sharpe_Ratio[i] <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>SharpeRatio.annualized</span>(result<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Net_Returns)
+</span></span><span style=display:flex><span>  threshold_sensitivity<span style=color:#f92672>$</span>Total_Return[i] <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>tail</span>(result<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Cumulative_Returns, <span style=color:#ae81ff>1</span>)
+</span></span><span style=display:flex><span>  threshold_sensitivity<span style=color:#f92672>$</span>Max_Drawdown[i] <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>maxDrawdown</span>(result<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Net_Returns)
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 4. 可视化分析结果</span>
+</span></span><span style=display:flex><span>plot_sensitivity <span style=color:#f92672>&lt;-</span> <span style=color:#66d9ef>function</span>(data, param_name) {
+</span></span><span style=display:flex><span>  long_data <span style=color:#f92672>&lt;-</span> data <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>pivot_longer</span>(
+</span></span><span style=display:flex><span>      cols <span style=color:#f92672>=</span> <span style=color:#a6e22e>c</span>(Sharpe_Ratio, Total_Return),
+</span></span><span style=display:flex><span>      names_to <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Metric&#34;</span>, values_to <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Value&#34;</span>
+</span></span><span style=display:flex><span>    )
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>ggplot</span>(long_data, <span style=color:#a6e22e>aes</span>(
+</span></span><span style=display:flex><span>    x <span style=color:#f92672>=</span> .data[<span style=color:#a6e22e>[names</span>(data)[1]]], y <span style=color:#f92672>=</span> Value,
+</span></span><span style=display:flex><span>    color <span style=color:#f92672>=</span> Metric, group <span style=color:#f92672>=</span> Metric
+</span></span><span style=display:flex><span>  )) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>geom_line</span>(linewidth <span style=color:#f92672>=</span> <span style=color:#ae81ff>1.2</span>) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>geom_point</span>(size <span style=color:#f92672>=</span> <span style=color:#ae81ff>3</span>) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>labs</span>(
+</span></span><span style=display:flex><span>      title <span style=color:#f92672>=</span> <span style=color:#a6e22e>paste</span>(param_name, <span style=color:#e6db74>&#34;敏感性分析&#34;</span>),
+</span></span><span style=display:flex><span>      x <span style=color:#f92672>=</span> param_name, y <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;指标值&#34;</span>
+</span></span><span style=display:flex><span>    ) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>scale_color_manual</span>(
+</span></span><span style=display:flex><span>      values <span style=color:#f92672>=</span> <span style=color:#a6e22e>c</span>(<span style=color:#e6db74>&#34;Sharpe_Ratio&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;#1f77b4&#34;</span>, <span style=color:#e6db74>&#34;Total_Return&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;#ff7f0e&#34;</span>),
+</span></span><span style=display:flex><span>      labels <span style=color:#f92672>=</span> <span style=color:#a6e22e>c</span>(<span style=color:#e6db74>&#34;夏普比率&#34;</span>, <span style=color:#e6db74>&#34;总收益率&#34;</span>)
+</span></span><span style=display:flex><span>    ) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>theme_minimal</span>(base_size <span style=color:#f92672>=</span> <span style=color:#ae81ff>14</span>) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>theme</span>(legend.position <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;bottom&#34;</span>)
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 生成三个参数的敏感性图表</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>plot_sensitivity</span>(lookback_sensitivity, <span style=color:#e6db74>&#34;回看期(天)&#34;</span>)
+</span></span></code></pre></div><img src=/post/momentum-rotation_files/figure-html/ParameterSensitivity-1.png width=90% style=display:block;margin:auto><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#a6e22e>plot_sensitivity</span>(holding_sensitivity, <span style=color:#e6db74>&#34;持有期(天)&#34;</span>)
+</span></span></code></pre></div><img src=/post/momentum-rotation_files/figure-html/ParameterSensitivity-2.png width=90% style=display:block;margin:auto><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#a6e22e>plot_sensitivity</span>(threshold_sensitivity, <span style=color:#e6db74>&#34;再平衡阈值&#34;</span>)
+</span></span></code></pre></div><img src=/post/momentum-rotation_files/figure-html/ParameterSensitivity-3.png width=90% style=display:block;margin:auto><h1 id=样本外验证>样本外验证</h1><p>现在我们使用优化后的参数在样本外数据上验证策略的有效性：</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#75715e># 使用优化后的参数在样本外数据上测试策略</span>
+</span></span><span style=display:flex><span>oos_result <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>momentum_rotation_strategy</span>(
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>lapply</span>(large_cap_symbols, <span style=color:#66d9ef>function</span>(symbol) oos_data[[symbol]]), <span style=color:#75715e># 加载大盘股样本外数据</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>lapply</span>(small_cap_symbols, <span style=color:#66d9ef>function</span>(symbol) oos_data[[symbol]]), <span style=color:#75715e># 加载小盘股样本外数据</span>
+</span></span><span style=display:flex><span>  lookback_period <span style=color:#f92672>=</span> best_params<span style=color:#f92672>$</span>Lookback_Period, <span style=color:#75715e># 使用优化得到的回看期参数</span>
+</span></span><span style=display:flex><span>  holding_period <span style=color:#f92672>=</span> best_params<span style=color:#f92672>$</span>Holding_Period, <span style=color:#75715e># 使用优化得到的持有期参数</span>
+</span></span><span style=display:flex><span>  rebalance_threshold <span style=color:#f92672>=</span> best_params<span style=color:#f92672>$</span>Rebalance_Threshold <span style=color:#75715e># 使用优化得到的再平衡阈值</span>
+</span></span><span style=display:flex><span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 计算样本外买入持有策略的收益（大盘股）</span>
+</span></span><span style=display:flex><span>oos_buy_hold_large_cap <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>exp</span>(<span style=color:#a6e22e>cumsum</span>(oos_result<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Large_Cap_Returns)) <span style=color:#f92672>-</span> <span style=color:#ae81ff>1</span> <span style=color:#75715e># 累计收益计算</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 计算样本外买入持有策略的收益（小盘股）</span>
+</span></span><span style=display:flex><span>oos_buy_hold_small_cap <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>exp</span>(<span style=color:#a6e22e>cumsum</span>(oos_result<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Small_Cap_Returns)) <span style=color:#f92672>-</span> <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 计算等权买入持有策略的收益</span>
+</span></span><span style=display:flex><span>oos_buy_hold_equal <span style=color:#f92672>&lt;-</span> (oos_buy_hold_large_cap <span style=color:#f92672>+</span> oos_buy_hold_small_cap) <span style=color:#f92672>/</span> <span style=color:#ae81ff>2</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 准备可视化数据</span>
+</span></span><span style=display:flex><span>oos_performance_data <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>data.frame</span>(
+</span></span><span style=display:flex><span>  Date <span style=color:#f92672>=</span> <span style=color:#a6e22e>as.Date</span>(<span style=color:#a6e22e>index</span>(oos_result<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Large_Cap_Returns)), <span style=color:#75715e># 日期序列</span>
+</span></span><span style=display:flex><span>  Large_Cap <span style=color:#f92672>=</span> oos_buy_hold_large_cap, <span style=color:#75715e># 大盘股买入持有收益</span>
+</span></span><span style=display:flex><span>  Small_Cap <span style=color:#f92672>=</span> oos_buy_hold_small_cap, <span style=color:#75715e># 小盘股买入持有收益</span>
+</span></span><span style=display:flex><span>  Equal_Weight <span style=color:#f92672>=</span> oos_buy_hold_equal, <span style=color:#75715e># 等权组合收益</span>
+</span></span><span style=display:flex><span>  Momentum <span style=color:#f92672>=</span> oos_result<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Cumulative_Returns <span style=color:#75715e># 动量策略收益</span>
+</span></span><span style=display:flex><span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 转换数据为长格式便于ggplot绘图</span>
+</span></span><span style=display:flex><span>oos_performance_data_long <span style=color:#f92672>&lt;-</span> oos_performance_data <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>pivot_longer</span>(cols <span style=color:#f92672>=</span> <span style=color:#f92672>-</span>Date, 
+</span></span><span style=display:flex><span>               names_to <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Strategy&#34;</span>, 
+</span></span><span style=display:flex><span>               values_to <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Cumulative_Return&#34;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 绘制累积收益对比图</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>ggplot</span>(oos_performance_data_long, 
+</span></span><span style=display:flex><span>       <span style=color:#a6e22e>aes</span>(x <span style=color:#f92672>=</span> Date, 
+</span></span><span style=display:flex><span>           y <span style=color:#f92672>=</span> Cumulative_Return, color <span style=color:#f92672>=</span> Strategy)) <span style=color:#f92672>+</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>geom_line</span>() <span style=color:#f92672>+</span> <span style=color:#75715e># 绘制折线图</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>labs</span>(
+</span></span><span style=display:flex><span>    title <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;样本外策略表现&#34;</span>, <span style=color:#75715e># 图表标题</span>
+</span></span><span style=display:flex><span>    x <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Date&#34;</span>, y <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Cumulative Return&#34;</span>
+</span></span><span style=display:flex><span>  ) <span style=color:#f92672>+</span> <span style=color:#75715e># 坐标轴标签</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>scale_color_manual</span>(values <span style=color:#f92672>=</span> <span style=color:#a6e22e>c</span>(
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;Large_Cap&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;blue&#34;</span>, <span style=color:#e6db74>&#34;Small_Cap&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;red&#34;</span>,
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;Equal_Weight&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;green&#34;</span>, <span style=color:#e6db74>&#34;Momentum&#34;</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;purple&#34;</span>
+</span></span><span style=display:flex><span>  )) <span style=color:#f92672>+</span> <span style=color:#75715e># 颜色设置</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>theme_minimal</span>() <span style=color:#f92672>+</span> <span style=color:#75715e># 使用简洁主题</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>theme</span>(legend.title <span style=color:#f92672>=</span> <span style=color:#a6e22e>element_blank</span>()) <span style=color:#75715e># 隐藏图例标题</span>
+</span></span></code></pre></div><img src=/post/momentum-rotation_files/figure-html/outOfSampleValidation-1.png width=90% style=display:block;margin:auto><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#75715e># 计算样本外策略表现指标</span>
+</span></span><span style=display:flex><span>oos_performance <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>data.frame</span>(
+</span></span><span style=display:flex><span>  Strategy <span style=color:#f92672>=</span> <span style=color:#a6e22e>c</span>(
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;Large Cap Buy &amp; Hold&#34;</span>, <span style=color:#e6db74>&#34;Small Cap Buy &amp; Hold&#34;</span>,
+</span></span><span style=display:flex><span>    <span style=color:#e6db74>&#34;Equal Weight Buy &amp; Hold&#34;</span>, <span style=color:#e6db74>&#34;Momentum Rotation&#34;</span>
+</span></span><span style=display:flex><span>  ), <span style=color:#75715e># 策略名称</span>
+</span></span><span style=display:flex><span>  Total_Return <span style=color:#f92672>=</span> <span style=color:#a6e22e>c</span>(
+</span></span><span style=display:flex><span>    oos_buy_hold_large_cap<span style=color:#a6e22e>[length</span>(oos_buy_hold_large_cap)], <span style=color:#75715e># 大盘股总收益</span>
+</span></span><span style=display:flex><span>    oos_buy_hold_small_cap<span style=color:#a6e22e>[length</span>(oos_buy_hold_small_cap)], <span style=color:#75715e># 小盘股总收益</span>
+</span></span><span style=display:flex><span>    oos_buy_hold_equal<span style=color:#a6e22e>[length</span>(oos_buy_hold_equal)], <span style=color:#75715e># 等权组合总收益</span>
+</span></span><span style=display:flex><span>    oos_result<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Cumulative_Returns<span style=color:#a6e22e>[length</span>(oos_result<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Cumulative_Returns)] <span style=color:#75715e># 动量策略总收益</span>
+</span></span><span style=display:flex><span>  ),
+</span></span><span style=display:flex><span>  Sharpe_Ratio <span style=color:#f92672>=</span> <span style=color:#a6e22e>c</span>(
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>SharpeRatio.annualized</span>(oos_result<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Large_Cap_Returns), <span style=color:#75715e># 大盘股夏普比率</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>SharpeRatio.annualized</span>(oos_result<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Small_Cap_Returns), <span style=color:#75715e># 小盘股夏普比率</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>SharpeRatio.annualized</span>((oos_result<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Large_Cap_Returns <span style=color:#f92672>+</span> oos_result<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Small_Cap_Returns) <span style=color:#f92672>/</span> <span style=color:#ae81ff>2</span>), <span style=color:#75715e># 等权组合夏普比率</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>SharpeRatio.annualized</span>(oos_result<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Net_Returns) <span style=color:#75715e># 动量策略夏普比率</span>
+</span></span><span style=display:flex><span>  ),
+</span></span><span style=display:flex><span>  Max_Drawdown <span style=color:#f92672>=</span> <span style=color:#a6e22e>c</span>(
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>maxDrawdown</span>(oos_result<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Large_Cap_Returns), <span style=color:#75715e># 大盘股最大回撤</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>maxDrawdown</span>(oos_result<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Small_Cap_Returns), <span style=color:#75715e># 小盘股最大回撤</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>maxDrawdown</span>((oos_result<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Large_Cap_Returns <span style=color:#f92672>+</span> oos_result<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Small_Cap_Returns) <span style=color:#f92672>/</span> <span style=color:#ae81ff>2</span>), <span style=color:#75715e># 等权组合最大回撤</span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>maxDrawdown</span>(oos_result<span style=color:#f92672>$</span>xts<span style=color:#f92672>$</span>Net_Returns) <span style=color:#75715e># 动量策略最大回撤</span>
+</span></span><span style=display:flex><span>  )
+</span></span><span style=display:flex><span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 打印样本外性能指标</span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>print</span>(oos_performance) <span style=color:#75715e># 输出策略比较结果</span>
+</span></span></code></pre></div><pre tabindex=0><code>##                              Strategy Total_Return Sharpe_Ratio Max_Drawdown
+## X2023.12.29      Large Cap Buy &amp; Hold    0.7708001    2.9047901    0.1693780
+## X2023.12.29.1    Small Cap Buy &amp; Hold   -0.1367801   -0.4796014    0.6159451
+## X2023.12.29.2 Equal Weight Buy &amp; Hold    0.3170100    0.6359367    0.3230760
+## X2023.12.29.3       Momentum Rotation    0.4791532    0.7933869    0.2934326
+</code></pre><h1 id=结论>结论</h1><p>本文通过R语言实现了基于动量的大盘股/小盘股轮动策略，并进行了全面的分析。主要发现
+如下：</p><ol><li>动量轮动策略在回测期间表现出了优于简单买入持有策略的潜力，特别是在夏普比率方面。</li><li>通过参数优化，我们找到了最优的回看期、持有期和再平衡阈值组合，显著提高了策略的
+表现。</li><li>参数敏感性分析表明，策略对回看期和持有期较为敏感，而对再平衡阈值的敏感性相对较
+低。</li><li>样本外验证显示，优化后的策略在新数据上仍具有一定的有效性，但性能通常会有所下降，
+这反映了过拟合的风险。</li></ol><p>总体而言，基于动量的大盘股/小盘股轮动策略是一种可行的投资方法，但需要谨慎选择参数
+并进行充分的样本外验证。在实际应用中，还应考虑交易成本、市场环境变化等因素的影响。</p><p>未来的研究可以考虑结合其他指标来改进策略，如波动率指标、市场情绪指标等，或者探索
+在不同市场环境下的表现差异。</p></div><footer class=post__footer><div class="post__tags tags clearfix"><svg class="tags__badge icon icon-tag" width="16" height="16" viewBox="0 0 32 32"><path d="M4 0h8s2 0 4 2l15 15s2 2 0 4L21 31s-2 2-4 0L2 16s-2-2-2-4V3s0-3 4-3m3 10a3 3 0 000-6 3 3 0 000 6"/></svg><ul class=tags__list><li class=tags__item><a class="tags__link btn" href=/tags/r/ rel=tag>R</a></li><li class=tags__item><a class="tags__link btn" href=/tags/%E5%8A%A8%E9%87%8F/ rel=tag>动量</a></li><li class=tags__item><a class="tags__link btn" href=/tags/%E8%BD%AE%E5%8A%A8%E7%AD%96%E7%95%A5/ rel=tag>轮动策略</a></li></ul></div></footer></article><script src=https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js async></script><script>window.MathJax={tex:{inlineMath:[["$","$"],["\\(","\\)"]],displayMath:[["$$","$$"],["\\[","\\]"]],processEscapes:!0,tags:"ams"},svg:{fontCache:"global"}}</script></main></div></div><footer class=footer><div class="container footer__container flex"><div class=footer__copyright>&copy; 2025 R-Finance中国.
+<span class=footer__copyright-credits>Generated with <a href=https://gohugo.io/ rel="nofollow noopener" target=_blank>Hugo</a> and <a href=https://github.com/Vimux/Mainroad/ rel="nofollow noopener" target=_blank>Mainroad</a> theme.</span></div></div></footer></div><script async defer src=/js/menu.js></script><script src=https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js async></script><script>window.MathJax={tex:{inlineMath:[["$","$"],["\\(","\\)"]],displayMath:[["$$","$$"],["\\[","\\]"]],processEscapes:!0,tags:"ams"},svg:{fontCache:"global"}}</script></body></html>
