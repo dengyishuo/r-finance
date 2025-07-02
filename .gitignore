@@ -1,11 +1,10 @@
-# /public/
+/public/
 /resources/
 .hugo_build.lock
 # History files
 .Rhistory
 .Rapp.history
 *.Rproj
-.Rprofile
 # Session Data files
 .RData
 .RDataTmp
