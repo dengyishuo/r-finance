@@ -129,7 +129,7 @@ $$
 EMA_{l} = \frac{2}{N_{l} + 1} \times (Cl - EMA_{l}^{pre}) + EMA_{l}^{pre}
 $$
 
-其中，$N_{s}$ 通常为12，$N_{l}$ 通常为26。
+其中，$N_{s}$通常为12，$N_{l}$通常为26。
 
 2. 计算DIF线：
 $$
@@ -140,7 +140,7 @@ $$
 $$
 DEA = \frac{2}{N_{signal} + 1} \times (DIF - DEA^{pre}) + DEA^{pre}
 $$
-   其中，$N_{signal}$ 通常为9。
+   其中，$N_{signal}$通常为9。
 
 4. 计算MACD柱状图：
 $$
