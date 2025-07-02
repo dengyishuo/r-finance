@@ -12,8 +12,14 @@ authorbox: false
 sidebar: false
 pager: false
 mathjax: true
-tags: ["R", "金融", "协整", "配对交易"]
-categories: ["R语言", "金融数据分析"]
+tags: 
+  - "R"
+  - "金融"
+  - "协整"
+  - "配对交易"
+categories: 
+  - "R语言"
+  - "金融数据分析"
 output:
   html_document:
     preserve_yaml: true 
@@ -65,7 +71,7 @@ $$
 \Delta y_{t} = \alpha + \beta t + \gamma y_{t-1} + \sum_{i=1}^{p} \delta_{i} \Delta y_{t-i} +\varepsilon_{t}
 $$
 
-其中,$\gamma=0$ 表示存在单位根。
+其中，$\gamma=0$ 表示存在单位根。
 
 ### KPSS检验（Kwiatkowski-Phillips-Schmidt-Shin检验）
 
@@ -79,8 +85,8 @@ KPSS检验与ADF检验相反，其原假设为序列是平稳的，备择假设�
 ### Engle-Granger两步法
 
 Engle-Granger两步法的步骤如下：
-1. 对两个非平稳序列进行线性回归:$y_{t} = \alpha + \beta x_{t} + \varepsilon_{t}$ 
-2. 检验回归残差序列$\hat{\varepsilon}_{t}$是否平稳
+1. 对两个非平稳序列进行线性回归:$y_{t} = \alpha + \beta x_{t} + \varepsilon_{t}$
+2. 检验回归残差序列$\hat{\varepsilon}_{t}$ 是否平稳
 3. 如果残差序列平稳，则两个序列存在协整关系
 
 ### Johansen检验
@@ -101,7 +107,7 @@ $$
 \Delta x_{t}=\alpha_{2}+\sum_{i=1}^{p}\beta_{2i}\Delta x_{t-i}+\sum_{i=0}^{q}\gamma_{2i}\Delta y_{t-i}+\lambda_{2}(y_{t-1}-\beta x_{t-1})+\varepsilon_{2t}
 $$
 
-其中，$(y_{t-1}-\beta x_{t-1})$是误差修正项，表示对长期均衡关系的偏离。
+其中，$\(y_{t-1}-\beta x_{t-1}\)$ 是误差修正项，表示对长期均衡关系的偏离。
 
 # 实证分析
 
@@ -155,7 +161,7 @@ str(close_prices)
 ##   Index:   Date [1259] (TZ: "UTC")
 ##   xts Attributes:
 ##     $ src    : chr "yahoo"
-##     $ updated: POSIXct[1:1], format: "2025-07-02 15:25:59"
+##     $ updated: POSIXct[1:1], format: "2025-07-02 18:19:15"
 ```
 
 ``` r

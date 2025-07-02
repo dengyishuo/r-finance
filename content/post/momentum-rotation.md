@@ -7,6 +7,7 @@ lead: null
 authorbox: false
 sidebar: false
 pager: false
+mathjax: true
 tags:
   - "R"
   - "动量"

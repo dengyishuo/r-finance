@@ -8,9 +8,14 @@ authorbox: false
 sidebar: false
 pager: false
 mathjax: true
-tags: ["R", "金融", "均值回复", "有效性"]
-categories: ["R语言", "金融数据分析"]
-documentclass: ctexart
+tags:
+  - "R"
+  - "金融"
+  - "均值回复"
+  - "有效性"
+categories:
+  - "R语言"
+  - "金融数据分析"
 output:
   html_document:
     preserve_yaml: true

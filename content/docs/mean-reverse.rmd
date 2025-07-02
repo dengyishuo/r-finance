@@ -8,9 +8,14 @@ authorbox: false
 sidebar: false
 pager: false
 mathjax: true
-tags: ["R", "金融", "均值回复", "有效性"]
-categories: ["R语言", "金融数据分析"]
-documentclass: ctexart
+tags:
+  - "R"
+  - "金融"
+  - "均值回复"
+  - "有效性"
+categories:
+  - "R语言"
+  - "金融数据分析"
 output:
   html_document:
     preserve_yaml: true
@@ -107,7 +112,7 @@ for (symbol in stock_symbols) {
 
 首先定义一个函数来实现这个策略：
 
-```{R mean-reversion-strategy}
+```{R meanReversionStrategy}
 # 定义均值回归策略函数
 mean_reversion_strategy <- function(data, ma_period = 20, sd_mult = 2, 
                                     trade_size = 10000, commission = 0.001) {

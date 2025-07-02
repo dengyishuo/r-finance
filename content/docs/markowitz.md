@@ -91,7 +91,7 @@ str(stock_data[[1]])
 ##   Index:   Date [1259] (TZ: "UTC")
 ##   xts Attributes:
 ##     $ src    : chr "yahoo"
-##     $ updated: POSIXct[1:1], format: "2025-07-02 15:24:02"
+##     $ updated: POSIXct[1:1], format: "2025-07-02 18:09:13"
 ```
 
 ## 数据预处理
