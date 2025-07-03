@@ -8,10 +8,16 @@ authorbox: false
 sidebar: false
 pager: false
 mathjax: true
-tags: ["R", "金融", "马克维茨", "投资组合"]
-categories: ["R语言", "金融数据分析"]
+tags: 
+  - "R"
+  - "金融"
+  - "马克维茨"
+  - "投资组合"
+categories: 
+  - "R语言"
+  - "金融数据分析"
 output:
-  html_document:
+  md_document:
     preserve_yaml: true
 ---
 
@@ -91,7 +97,7 @@ str(stock_data[[1]])
 ##   Index:   Date [1259] (TZ: "UTC")
 ##   xts Attributes:
 ##     $ src    : chr "yahoo"
-##     $ updated: POSIXct[1:1], format: "2025-07-02 18:09:13"
+##     $ updated: POSIXct[1:1], format: "2025-07-03 08:39:01"
 ```
 
 ## 数据预处理

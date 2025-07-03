@@ -8,10 +8,16 @@ authorbox: false
 sidebar: false
 pager: false
 mathjax: true
-tags: ["R", "金融", "马克维茨", "投资组合"]
-categories: ["R语言", "金融数据分析"]
+tags: 
+  - "R"
+  - "金融"
+  - "马克维茨"
+  - "投资组合"
+categories: 
+  - "R语言"
+  - "金融数据分析"
 output:
-  html_document:
+  md_document:
     preserve_yaml: true
 ---
 

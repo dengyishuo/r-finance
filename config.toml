@@ -44,8 +44,8 @@ googleAnalytics = "" # Enable Google Analytics by entering your tracking id
   mathjaxConfig = "TeX-AMS-MML_HTMLorMML"  # 标准配置
 # Markdown 渲染优化（修复 smartypants 位置）
 [markup]
-  smartypants = true  # 禁用智能引号转换，避免干扰 LaTeX 公式
+  smartypants = false  # 禁用智能引号转换，避免干扰 LaTeX 公式
   [markup.goldmark]
     [markup.goldmark.renderer]
-      unsafe = false  # 允许原始 HTML 和 LaTeX 符号
+      unsafe = true  # 允许原始 HTML 和 LaTeX 符号
       

@@ -17,7 +17,7 @@ categories:
   - "R语言"
   - "金融数据分析"
 output:
-  html_document:
+  md_document:
     preserve_yaml: true
 ---
 

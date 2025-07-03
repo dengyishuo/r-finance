@@ -15,7 +15,7 @@ tags:
 categories:
   - "量化投资"
 output:
-  html_document:
+  md_document:
     preserve_yaml: true
 ---
 
